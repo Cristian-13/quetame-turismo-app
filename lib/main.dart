@@ -1,5 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:provider/provider.dart';
+import 'package:quetame_turismo/providers/audio_provider.dart';
+import 'package:quetame_turismo/providers/event_provider.dart';
+import 'package:quetame_turismo/providers/location_provider.dart';
+import 'package:quetame_turismo/providers/place_provider.dart';
+import 'package:quetame_turismo/providers/route_provider.dart';
+import 'package:quetame_turismo/providers/theme_provider.dart';
+import 'package:quetame_turismo/screens/main_screen.dart';
+import 'package:quetame_turismo/theme/app_theme.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -9,7 +18,19 @@ void main() async {
   // Inicializa Firebase con la configuración automática que creamos
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  runApp(const QuetameTurismoApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => RouteProvider()),
+        ChangeNotifierProvider(create: (_) => EventProvider()),
+        ChangeNotifierProvider(create: (_) => PlaceProvider()),
+        ChangeNotifierProvider(create: (_) => AudioProvider()),
+        ChangeNotifierProvider(create: (_) => LocationProvider()..initialize()),
+      ],
+      child: const QuetameTurismoApp(),
+    ),
+  );
 }
 
 class QuetameTurismoApp extends StatelessWidget {
@@ -17,16 +38,14 @@ class QuetameTurismoApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = context.watch<ThemeProvider>();
+
     return MaterialApp(
       title: 'Quetame Turismo Bicentenario',
-      theme: ThemeData(
-        // Le puse verde por defecto pensando en los senderos, ¡pero luego lo cambiamos!
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
-        useMaterial3: true,
-      ),
-      home: const Scaffold(
-        body: Center(child: Text('¡Conexión a Firebase Exitosa!')),
-      ),
+      theme: AppTheme.lightTheme(),
+      darkTheme: AppTheme.darkTheme(),
+      themeMode: themeProvider.themeMode,
+      home: const MainScreen(),
     );
   }
 }
