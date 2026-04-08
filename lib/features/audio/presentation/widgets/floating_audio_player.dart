@@ -5,7 +5,16 @@ import 'package:quetame_turismo/theme/app_colors.dart';
 import 'package:quetame_turismo/theme/app_theme.dart';
 
 class FloatingAudioPlayer extends StatelessWidget {
-  const FloatingAudioPlayer({super.key});
+  const FloatingAudioPlayer({
+    super.key,
+    required this.routeId,
+    required this.toggleUrl,
+    required this.trackTitle,
+  });
+
+  final String routeId;
+  final String toggleUrl;
+  final String trackTitle;
 
   @override
   Widget build(BuildContext context) {
@@ -75,7 +84,13 @@ class FloatingAudioPlayer extends StatelessWidget {
                 radius: 24,
                 backgroundColor: AppColors.primaryTerracotta,
                 child: IconButton(
-                  onPressed: () => context.read<AudioProvider>().togglePlayPause(),
+                  onPressed: () {
+                    context.read<AudioProvider>().toggleRoutePlayPause(
+                          routeId,
+                          toggleUrl,
+                          trackTitle: trackTitle,
+                        );
+                  },
                   icon: Icon(
                     audioProvider.isPlaying ? Icons.pause : Icons.play_arrow,
                     color: Colors.white,

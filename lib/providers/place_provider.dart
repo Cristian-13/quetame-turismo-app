@@ -13,6 +13,7 @@ class PlaceProvider extends ChangeNotifier {
           'https://images.unsplash.com/photo-1518998053901-5348d3961a04?auto=format&fit=crop&w=1200&q=60',
       latitude: 4.3318,
       longitude: -73.8656,
+      phone: '+573001234567',
     ),
     PlaceModel(
       id: 'p2',
@@ -24,6 +25,7 @@ class PlaceProvider extends ChangeNotifier {
           'https://images.unsplash.com/photo-1473448912268-2022ce9509d8?auto=format&fit=crop&w=1200&q=60',
       latitude: 4.3313,
       longitude: -73.8649,
+      phone: '+573011234567',
     ),
     PlaceModel(
       id: 'p3',
@@ -35,6 +37,7 @@ class PlaceProvider extends ChangeNotifier {
           'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=60',
       latitude: 4.3332,
       longitude: -73.8669,
+      phone: '+573021234567',
     ),
   ];
 

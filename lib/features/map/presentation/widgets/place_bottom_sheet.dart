@@ -7,9 +7,13 @@ import 'package:quetame_turismo/theme/app_theme.dart';
 class PlaceBottomSheet extends StatelessWidget {
   final PlaceModel place;
 
+  /// Trazar ruta OSRM desde la ubicación del usuario hasta [place].
+  final Future<void> Function(PlaceModel place) onRutaPressed;
+
   const PlaceBottomSheet({
     super.key,
     required this.place,
+    required this.onRutaPressed,
   });
 
   @override
@@ -101,9 +105,9 @@ class PlaceBottomSheet extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               IconButton.filledTonal(
-                onPressed: () {},
+                onPressed: () => onRutaPressed(place),
                 icon: const Icon(Icons.directions),
-                tooltip: 'Como llegar',
+                tooltip: 'Ruta',
               ),
             ],
           ),

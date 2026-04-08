@@ -39,6 +39,7 @@ class PlaceModel {
   final String imageUrl;
   final double latitude;
   final double longitude;
+  final String? phone;
 
   const PlaceModel({
     required this.id,
@@ -48,5 +49,6 @@ class PlaceModel {
     required this.imageUrl,
     required this.latitude,
     required this.longitude,
+    this.phone,
   });
 }

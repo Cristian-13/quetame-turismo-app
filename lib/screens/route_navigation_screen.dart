@@ -125,7 +125,11 @@ class _RouteNavigationScreenState extends State<RouteNavigationScreen> {
               duration: const Duration(milliseconds: 220),
               child: IgnorePointer(
                 ignoring: !_showAudioPlayer,
-                child: const FloatingAudioPlayer(),
+                child: FloatingAudioPlayer(
+                  routeId: widget.route.id,
+                  toggleUrl: widget.route.audioguideUrl,
+                  trackTitle: widget.route.title,
+                ),
               ),
             ),
           ),

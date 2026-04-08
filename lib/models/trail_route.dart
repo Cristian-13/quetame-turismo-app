@@ -14,6 +14,18 @@ class TrailRoute {
   final Color difficultyTextColor;
   final List<LatLng> pathPoints;
 
+  /// URL de prueba de audioguía por ruta (SoundHelix 1 → r1, SoundHelix 2 → r2).
+  String get audioguideUrl {
+    switch (id) {
+      case 'r1':
+        return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+      case 'r2':
+        return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3';
+      default:
+        return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+    }
+  }
+
   const TrailRoute({
     required this.id,
     required this.title,

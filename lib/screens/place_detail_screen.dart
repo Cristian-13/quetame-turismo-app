@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:quetame_turismo/models/place_model.dart';
 import 'package:quetame_turismo/theme/app_colors.dart';
 import 'package:quetame_turismo/theme/app_theme.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-class PlaceDetailScreen extends StatelessWidget {
+class PlaceDetailScreen extends StatefulWidget {
   final PlaceModel place;
 
   const PlaceDetailScreen({
@@ -12,11 +15,99 @@ class PlaceDetailScreen extends StatelessWidget {
   });
 
   @override
+  State<PlaceDetailScreen> createState() => _PlaceDetailScreenState();
+}
+
+class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
+  static const String _favoritesPrefsKey = 'quetame_favorite_place_ids';
+
+  bool isFavorite = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFavoriteFromStorage();
+  }
+
+  @override
+  void didUpdateWidget(covariant PlaceDetailScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.place.id != widget.place.id) {
+      _loadFavoriteFromStorage();
+    }
+  }
+
+  Future<void> _loadFavoriteFromStorage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final ids = prefs.getStringList(_favoritesPrefsKey) ?? [];
+    if (!mounted) return;
+    setState(() {
+      isFavorite = ids.contains(widget.place.id);
+    });
+  }
+
+  Future<void> _toggleFavorite() async {
+    final prefs = await SharedPreferences.getInstance();
+    final ids = List<String>.from(prefs.getStringList(_favoritesPrefsKey) ?? []);
+    final next = !isFavorite;
+    if (next) {
+      if (!ids.contains(widget.place.id)) ids.add(widget.place.id);
+    } else {
+      ids.remove(widget.place.id);
+    }
+    await prefs.setStringList(_favoritesPrefsKey, ids);
+    if (!mounted) return;
+    setState(() {
+      isFavorite = next;
+    });
+  }
+
+  Future<void> _sharePlace() async {
+    await Share.share(
+      '${widget.place.name}\n\n'
+      'Te invitamos a visitar Quetame y descubrir este y otros lugares del municipio.',
+    );
+  }
+
+  Future<void> _openDirections() async {
+    final uri = Uri.parse(
+      'https://www.google.com/maps/search/?api=1&query=${widget.place.latitude},${widget.place.longitude}',
+    );
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo abrir el mapa')),
+      );
+    }
+  }
+
+  Future<void> _callPlace() async {
+    final raw = widget.place.phone?.trim();
+    if (raw == null || raw.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Teléfono no disponible')),
+      );
+      return;
+    }
+    final cleaned = raw.replaceAll(RegExp(r'[\s\-()]'), '');
+    final uri = Uri(scheme: 'tel', path: cleaned);
+    if (!await launchUrl(uri)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo abrir el marcador')),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final place = widget.place;
+
     return Scaffold(
       backgroundColor: AppColors.backgroundCream,
       body: DefaultTabController(
-        length: 4,
+        length: 3,
         child: SingleChildScrollView(
           child: Stack(
             children: [
@@ -33,12 +124,14 @@ class PlaceDetailScreen extends StatelessWidget {
                       const Spacer(),
                       _CircleActionButton(
                         icon: Icons.share_outlined,
-                        onPressed: () {},
+                        onPressed: _sharePlace,
                       ),
                       const SizedBox(width: 8),
                       _CircleActionButton(
-                        icon: Icons.favorite_border,
-                        onPressed: () {},
+                        icon: isFavorite ? Icons.favorite : Icons.favorite_border,
+                        iconColor:
+                            isFavorite ? Colors.red : const Color(0xFF39434C),
+                        onPressed: _toggleFavorite,
                       ),
                     ],
                   ),
@@ -116,7 +209,7 @@ class PlaceDetailScreen extends StatelessWidget {
                         children: [
                           Expanded(
                             child: OutlinedButton.icon(
-                              onPressed: () {},
+                              onPressed: _openDirections,
                               icon: const Icon(Icons.map_outlined),
                               label: const Text('Direcciones'),
                               style: OutlinedButton.styleFrom(
@@ -130,7 +223,7 @@ class PlaceDetailScreen extends StatelessWidget {
                           const SizedBox(width: 10),
                           Expanded(
                             child: ElevatedButton.icon(
-                              onPressed: () {},
+                              onPressed: _callPlace,
                               icon: const Icon(Icons.call),
                               label: const Text('Llamar'),
                               style: ElevatedButton.styleFrom(
@@ -153,7 +246,6 @@ class PlaceDetailScreen extends StatelessWidget {
                           Tab(text: 'Historia'),
                           Tab(text: 'Menú'),
                           Tab(text: 'Horarios'),
-                          Tab(text: 'Reseñas'),
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -164,7 +256,6 @@ class PlaceDetailScreen extends StatelessWidget {
                             _HistoryTab(description: place.description),
                             const _MenuTab(),
                             const _ScheduleTab(),
-                            const _ReviewsTab(),
                           ],
                         ),
                       ),
@@ -240,10 +331,12 @@ class _GalleryImage extends StatelessWidget {
 class _CircleActionButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onPressed;
+  final Color iconColor;
 
   const _CircleActionButton({
     required this.icon,
     required this.onPressed,
+    this.iconColor = const Color(0xFF39434C),
   });
 
   @override
@@ -256,7 +349,7 @@ class _CircleActionButton extends StatelessWidget {
       ),
       child: IconButton(
         onPressed: onPressed,
-        icon: Icon(icon, color: const Color(0xFF39434C)),
+        icon: Icon(icon, color: iconColor),
       ),
     );
   }
@@ -317,60 +410,6 @@ class _ScheduleTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return const SingleChildScrollView(
       child: _HoursCard(),
-    );
-  }
-}
-
-class _ReviewsTab extends StatelessWidget {
-  const _ReviewsTab();
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      children: const [
-        _ReviewTile(
-          name: 'Luisa M.',
-          comment: 'Muy bonito, excelente atención y comida típica deliciosa.',
-        ),
-        _ReviewTile(
-          name: 'Camilo R.',
-          comment: 'Lugar recomendado para turistas, limpio y con buen ambiente.',
-        ),
-        _ReviewTile(
-          name: 'Natalia P.',
-          comment: 'La vista y el servicio son increíbles. Volvería sin duda.',
-        ),
-      ],
-    );
-  }
-}
-
-class _ReviewTile extends StatelessWidget {
-  final String name;
-  final String comment;
-
-  const _ReviewTile({
-    required this.name,
-    required this.comment,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8F9FA),
-        borderRadius: AppRadii.md,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(name, style: const TextStyle(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 4),
-          Text(comment, style: const TextStyle(color: Color(0xFF5A646D))),
-        ],
-      ),
     );
   }
 }

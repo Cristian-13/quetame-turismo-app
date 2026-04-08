@@ -36,8 +36,13 @@ class EventModel {
   final String dayOfWeek;
   final String time;
   final String location;
+  final String imageUrl;
 
-  const EventModel({
+  /// Inicio y fin del evento en **hora local** del dispositivo (no UTC), para [add_2_calendar].
+  final DateTime startDateTime;
+  final DateTime endDateTime;
+
+  EventModel({
     required this.id,
     required this.title,
     required this.description,
@@ -47,5 +52,8 @@ class EventModel {
     required this.dayOfWeek,
     required this.time,
     required this.location,
+    required this.imageUrl,
+    required this.startDateTime,
+    required this.endDateTime,
   });
 }
