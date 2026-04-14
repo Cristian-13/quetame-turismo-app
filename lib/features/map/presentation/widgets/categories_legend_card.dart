@@ -40,121 +40,122 @@ class CategoriesLegendCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color background = isDarkMode ? const Color(0xFF2A2A2A) : Colors.white;
-    final Color textColor = isDarkMode ? Colors.white : const Color(0xFF2B2B2B);
+    final Color shadowColor = isDarkMode ? Colors.black54 : Colors.black12;
 
     return Container(
-      constraints: const BoxConstraints(maxWidth: 168),
-      padding: const EdgeInsets.all(10),
+      height: 44,
       decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
+        color: Colors.transparent,
+        boxShadow: [
           BoxShadow(
-            color: Colors.black26,
-            blurRadius: 8,
-            offset: Offset(0, 3),
+            color: shadowColor,
+            blurRadius: 6,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'Categorías',
-            style: TextStyle(
-              color: textColor,
-              fontWeight: FontWeight.w700,
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(height: 8),
-          ...categoryKeys.map(
-            (label) => Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: _CategoryChip(
-                label: label,
-                dotColor: label == 'Todos'
-                    ? AppColors.primaryTerracotta
-                    : dotColorForLabel(label),
-                selected: selectedCategory == label,
-                isDarkMode: isDarkMode,
-                onTap: () => onCategorySelected(label),
-              ),
-            ),
-          ),
-        ],
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        itemCount: categoryKeys.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (_, index) {
+          final label = categoryKeys[index];
+          return _CategoryChip(
+            label: label,
+            selected: selectedCategory == label,
+            isDarkMode: isDarkMode,
+            onTap: () => onCategorySelected(label),
+          );
+        },
       ),
     );
   }
 }
 
+class _CategoryData {
+  final String label;
+  final IconData icon;
+
+  const _CategoryData({
+    required this.label,
+    required this.icon,
+  });
+}
+
 class _CategoryChip extends StatelessWidget {
   final String label;
-  final Color dotColor;
   final bool selected;
   final bool isDarkMode;
   final VoidCallback onTap;
 
   const _CategoryChip({
     required this.label,
-    required this.dotColor,
     required this.selected,
     required this.isDarkMode,
     required this.onTap,
   });
 
+  static const List<_CategoryData> _categories = [
+    _CategoryData(label: 'Todos', icon: Icons.grid_view_rounded),
+    _CategoryData(label: 'Historia', icon: Icons.account_balance),
+    _CategoryData(label: 'Naturaleza', icon: Icons.terrain),
+    _CategoryData(label: 'Mirador', icon: Icons.visibility),
+    _CategoryData(label: 'Gastronomía', icon: Icons.restaurant),
+  ];
+
+  IconData _iconForLabel(String currentLabel) {
+    for (final category in _categories) {
+      if (category.label == currentLabel) return category.icon;
+    }
+    return Icons.category_rounded;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final mutedText = isDarkMode ? Colors.white70 : const Color(0xFF545454);
+    final Color selectedBackground = AppColors.flagGreen;
+    final Color unselectedBackground =
+        isDarkMode ? const Color(0xFF2A2F33) : Colors.white;
+    final Color unselectedBorder =
+        isDarkMode ? const Color(0xFF46505A) : const Color(0xFFD6DDE3);
+    final Color unselectedForeground =
+        isDarkMode ? const Color(0xFFE8EDF2) : const Color(0xFF37424A);
+    final icon = _iconForLabel(label);
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(999),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: selected
-                ? AppColors.flagGreen.withValues(alpha: isDarkMode ? 0.35 : 0.22)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
+            color: selected ? selectedBackground : unselectedBackground,
+            borderRadius: BorderRadius.circular(999),
             border: Border.all(
-              color: selected ? AppColors.flagGreen : Colors.transparent,
-              width: selected ? 1.5 : 0,
+              color: selected ? selectedBackground : unselectedBorder,
+              width: 1,
             ),
           ),
           child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: dotColor,
-                  shape: BoxShape.circle,
+              Icon(
+                icon,
+                size: 16,
+                color: selected ? Colors.white : unselectedForeground,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  color: selected ? Colors.white : unselectedForeground,
+                  fontSize: 12,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
                 ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    color: selected ? AppColors.flagGreen : mutedText,
-                    fontSize: 11,
-                    fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
-                  ),
-                ),
-              ),
-              if (selected)
-                Icon(
-                  Icons.check_rounded,
-                  size: 16,
-                  color: AppColors.flagGreen,
-                ),
             ],
           ),
         ),

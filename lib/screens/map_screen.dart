@@ -338,11 +338,15 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         ),
         Positioned(
           left: 16,
-          bottom: 24,
-          child: CategoriesLegendCard(
-            isDarkMode: isDarkMode,
-            selectedCategory: selectedCategory,
-            onCategorySelected: _onCategorySelected,
+          right: 16,
+          top: MediaQuery.of(context).padding.top + 8,
+          child: SizedBox(
+            height: 44,
+            child: CategoriesLegendCard(
+              isDarkMode: isDarkMode,
+              selectedCategory: selectedCategory,
+              onCategorySelected: _onCategorySelected,
+            ),
           ),
         ),
         Positioned(
