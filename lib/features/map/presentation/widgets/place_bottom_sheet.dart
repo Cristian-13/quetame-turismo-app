@@ -48,9 +48,8 @@ class PlaceBottomSheet extends StatelessWidget {
               child: Image.network(
                 place.imageUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  color: const Color(0xFFDDE2E6),
-                ),
+                errorBuilder: (_, _, _) =>
+                    Container(color: const Color(0xFFDDE2E6)),
               ),
             ),
           ),
@@ -79,7 +78,9 @@ class PlaceBottomSheet extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             place.description,
-            style: AppTextStyles.bodyMuted.copyWith(color: const Color(0xFF4D555D)),
+            style: AppTextStyles.bodyMuted.copyWith(
+              color: const Color(0xFF4D555D),
+            ),
           ),
           const SizedBox(height: 14),
           Row(
@@ -97,7 +98,9 @@ class PlaceBottomSheet extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.flagGreen,
                     foregroundColor: Colors.white,
-                    shape: const RoundedRectangleBorder(borderRadius: AppRadii.md),
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: AppRadii.md,
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   child: const Text('Ver detalles'),
