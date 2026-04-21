@@ -58,7 +58,7 @@ class CategoriesLegendCard extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 4),
         itemCount: categoryKeys.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (_, index) {
           final label = categoryKeys[index];
           return _CategoryChip(
@@ -77,10 +77,7 @@ class _CategoryData {
   final String label;
   final IconData icon;
 
-  const _CategoryData({
-    required this.label,
-    required this.icon,
-  });
+  const _CategoryData({required this.label, required this.icon});
 }
 
 class _CategoryChip extends StatelessWidget {
@@ -114,12 +111,15 @@ class _CategoryChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color selectedBackground = AppColors.flagGreen;
-    final Color unselectedBackground =
-        isDarkMode ? const Color(0xFF2A2F33) : Colors.white;
-    final Color unselectedBorder =
-        isDarkMode ? const Color(0xFF46505A) : const Color(0xFFD6DDE3);
-    final Color unselectedForeground =
-        isDarkMode ? const Color(0xFFE8EDF2) : const Color(0xFF37424A);
+    final Color unselectedBackground = isDarkMode
+        ? const Color(0xFF2A2F33)
+        : Colors.white;
+    final Color unselectedBorder = isDarkMode
+        ? const Color(0xFF46505A)
+        : const Color(0xFFD6DDE3);
+    final Color unselectedForeground = isDarkMode
+        ? const Color(0xFFE8EDF2)
+        : const Color(0xFF37424A);
     final icon = _iconForLabel(label);
 
     return Material(
