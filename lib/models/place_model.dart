@@ -5,6 +5,7 @@ enum PlaceCategory {
   historia,
   naturaleza,
   mirador,
+  gastronomia,
 }
 
 extension PlaceCategoryX on PlaceCategory {
@@ -16,6 +17,8 @@ extension PlaceCategoryX on PlaceCategory {
         return 'Naturaleza';
       case PlaceCategory.mirador:
         return 'Mirador';
+      case PlaceCategory.gastronomia:
+        return 'Gastronomía';
     }
   }
 
@@ -27,6 +30,8 @@ extension PlaceCategoryX on PlaceCategory {
         return AppColors.flagGreen;
       case PlaceCategory.mirador:
         return const Color(0xFF4D74D9);
+      case PlaceCategory.gastronomia:
+        return const Color(0xFFF15A4A);
     }
   }
 }

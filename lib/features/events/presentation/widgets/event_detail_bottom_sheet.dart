@@ -7,10 +7,7 @@ import 'package:quetame_turismo/theme/app_theme.dart';
 class EventDetailBottomSheet extends StatelessWidget {
   final EventModel event;
 
-  const EventDetailBottomSheet({
-    super.key,
-    required this.event,
-  });
+  const EventDetailBottomSheet({super.key, required this.event});
 
   static void show(BuildContext context, EventModel event) {
     showModalBottomSheet<void>(
@@ -72,7 +69,9 @@ class EventDetailBottomSheet extends StatelessWidget {
 
     final calEvent = a2c.Event(
       title: title,
-      description: description.isEmpty ? 'Evento — Quetame Turismo' : description,
+      description: description.isEmpty
+          ? 'Evento — Quetame Turismo'
+          : description,
       location: location.isEmpty ? 'Quetame, Cundinamarca' : location,
       startDate: start,
       endDate: end,
@@ -140,7 +139,7 @@ class EventDetailBottomSheet extends StatelessWidget {
                         child: Image.network(
                           event.imageUrl,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => ColoredBox(
+                          errorBuilder: (_, _, _) => ColoredBox(
                             color: scheme.surfaceContainerHighest,
                             child: Icon(
                               Icons.event_outlined,
@@ -154,8 +153,9 @@ class EventDetailBottomSheet extends StatelessWidget {
                     const SizedBox(height: 16),
                     Chip(
                       label: Text(event.category.label),
-                      backgroundColor:
-                          event.category.color.withValues(alpha: 0.18),
+                      backgroundColor: event.category.color.withValues(
+                        alpha: 0.18,
+                      ),
                       labelStyle: TextStyle(
                         color: event.category.color,
                         fontWeight: FontWeight.w600,

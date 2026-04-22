@@ -17,10 +17,7 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -28,15 +25,9 @@ class DefaultFirebaseOptions {
       case TargetPlatform.iOS:
         return ios;
       case TargetPlatform.macOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for macos - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return macos;
       case TargetPlatform.windows:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for windows - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return windows;
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -65,4 +56,34 @@ class DefaultFirebaseOptions {
     storageBucket: 'quetame-turismo.firebasestorage.app',
     iosBundleId: 'com.example.quetameTurismo',
   );
+
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyBDqno-E4dYWOi6EOHhQ4-iBZxy766tu6M',
+    appId: '1:1044656055952:web:751514a8aceb273fd41a15',
+    messagingSenderId: '1044656055952',
+    projectId: 'quetame-turismo',
+    authDomain: 'quetame-turismo.firebaseapp.com',
+    storageBucket: 'quetame-turismo.firebasestorage.app',
+    measurementId: 'G-25KSD1BT9W',
+  );
+
+  static const FirebaseOptions macos = FirebaseOptions(
+    apiKey: 'AIzaSyCgjTkPvmWGsQheitBJan9H4SOa0-dkT3A',
+    appId: '1:1044656055952:ios:48fdc013f9813b02d41a15',
+    messagingSenderId: '1044656055952',
+    projectId: 'quetame-turismo',
+    storageBucket: 'quetame-turismo.firebasestorage.app',
+    iosBundleId: 'com.example.quetameTurismo',
+  );
+
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyBDqno-E4dYWOi6EOHhQ4-iBZxy766tu6M',
+    appId: '1:1044656055952:web:90d9a13c88a7b4fad41a15',
+    messagingSenderId: '1044656055952',
+    projectId: 'quetame-turismo',
+    authDomain: 'quetame-turismo.firebaseapp.com',
+    storageBucket: 'quetame-turismo.firebasestorage.app',
+    measurementId: 'G-KBJ15362LS',
+  );
+
 }

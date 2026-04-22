@@ -1,45 +1,73 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quetame_turismo/models/place_model.dart';
 
 class PlaceProvider extends ChangeNotifier {
-  final List<PlaceModel> _places = const [
-    PlaceModel(
-      id: 'p1',
-      name: 'Iglesia Parroquial',
-      description:
-          'Templo tradicional del casco urbano, punto de encuentro historico y cultural de Quetame.',
-      category: PlaceCategory.historia,
-      imageUrl:
-          'https://images.unsplash.com/photo-1518998053901-5348d3961a04?auto=format&fit=crop&w=1200&q=60',
-      latitude: 4.3318,
-      longitude: -73.8656,
-      phone: '+573001234567',
-    ),
-    PlaceModel(
-      id: 'p2',
-      name: 'Parque Principal',
-      description:
-          'Espacio central ideal para descansar, conocer comercio local y disfrutar actividades comunitarias.',
-      category: PlaceCategory.naturaleza,
-      imageUrl:
-          'https://images.unsplash.com/photo-1473448912268-2022ce9509d8?auto=format&fit=crop&w=1200&q=60',
-      latitude: 4.3313,
-      longitude: -73.8649,
-      phone: '+573011234567',
-    ),
-    PlaceModel(
-      id: 'p3',
-      name: 'Mirador del Canon',
-      description:
-          'Punto panoramico con vista al valle y a la geografia montanosa de la region.',
-      category: PlaceCategory.mirador,
-      imageUrl:
-          'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=60',
-      latitude: 4.3332,
-      longitude: -73.8669,
-      phone: '+573021234567',
-    ),
-  ];
+  PlaceProvider({FirebaseFirestore? firestore})
+      : _firestore = firestore ?? FirebaseFirestore.instance {
+    loadPlaces();
+  }
+
+  final FirebaseFirestore _firestore;
+  final List<PlaceModel> _places = [];
+
+  bool _isLoading = false;
+  String? _error;
 
   List<PlaceModel> get places => List.unmodifiable(_places);
+  bool get isLoading => _isLoading;
+  String? get error => _error;
+
+  Future<void> loadPlaces() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final snapshot = await _firestore.collection('places').get();
+
+      final loaded = snapshot.docs.map((doc) {
+        final data = doc.data();
+        return _placeFromFirestore(doc.id, data);
+      }).toList();
+
+      _places
+        ..clear()
+        ..addAll(loaded);
+    } catch (e) {
+      _error = e.toString();
+      _places.clear();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+}
+
+PlaceModel _placeFromFirestore(String docId, Map<String, dynamic> data) {
+  final categoryRaw = (data['category'] ?? '').toString().trim().toLowerCase();
+  final category = switch (categoryRaw) {
+    'historia' => PlaceCategory.historia,
+    'naturaleza' => PlaceCategory.naturaleza,
+    'mirador' => PlaceCategory.mirador,
+    'gastronomia' => PlaceCategory.gastronomia,
+    'gastronomía' => PlaceCategory.gastronomia,
+    'restaurante' => PlaceCategory.gastronomia,
+    'comida' => PlaceCategory.gastronomia,
+    _ => PlaceCategory.naturaleza,
+  };
+
+  final lat = data['latitude'];
+  final lng = data['longitude'];
+
+  return PlaceModel(
+    id: (data['id'] ?? docId).toString(),
+    name: (data['name'] ?? '').toString(),
+    description: (data['description'] ?? '').toString(),
+    category: category,
+    imageUrl: (data['imageUrl'] ?? '').toString(),
+    latitude: (lat is num) ? lat.toDouble() : double.parse(lat.toString()),
+    longitude: (lng is num) ? lng.toDouble() : double.parse(lng.toString()),
+    phone: data['phone']?.toString(),
+  );
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:quetame_turismo/features/map/presentation/widgets/map_header.dart';
 import 'package:quetame_turismo/providers/theme_provider.dart';
+import 'package:quetame_turismo/providers/route_provider.dart';
 import 'package:quetame_turismo/screens/events_screen.dart';
 import 'package:quetame_turismo/screens/map_screen.dart';
 import 'package:quetame_turismo/screens/routes_screen.dart';
@@ -46,6 +47,7 @@ class _MainScreenState extends State<MainScreen> {
           setState(() {
             _currentIndex = index;
           });
+          context.read<RouteProvider>().setRoutesTabActive(index == 1);
         },
         destinations: const [
           NavigationDestination(

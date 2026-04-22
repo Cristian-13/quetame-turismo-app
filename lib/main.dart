@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:quetame_turismo/providers/audio_provider.dart';
 import 'package:quetame_turismo/providers/event_provider.dart';
 import 'package:quetame_turismo/providers/location_provider.dart';
+import 'package:quetame_turismo/providers/network_provider.dart';
 import 'package:quetame_turismo/providers/place_provider.dart';
 import 'package:quetame_turismo/providers/route_provider.dart';
 import 'package:quetame_turismo/providers/theme_provider.dart';
@@ -12,25 +13,36 @@ import 'package:quetame_turismo/theme/app_theme.dart';
 import 'firebase_options.dart';
 
 void main() async {
-  // Asegura que el motor de Flutter esté listo antes de arrancar Firebase
-  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    // Asegura que el motor de Flutter esté listo antes de arrancar Firebase
+    WidgetsFlutterBinding.ensureInitialized();
 
-  // Inicializa Firebase con la configuración automática que creamos
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    // Inicializa Firebase con la configuración automática que creamos
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
 
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
-        ChangeNotifierProvider(create: (_) => RouteProvider()),
-        ChangeNotifierProvider(create: (_) => EventProvider()),
-        ChangeNotifierProvider(create: (_) => PlaceProvider()),
-        ChangeNotifierProvider(create: (_) => AudioProvider()),
-        ChangeNotifierProvider(create: (_) => LocationProvider()..initialize()),
-      ],
-      child: const QuetameTurismoApp(),
-    ),
-  );
+    runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => ThemeProvider()),
+          ChangeNotifierProvider(create: (_) => RouteProvider()),
+          ChangeNotifierProvider(create: (_) => EventProvider()),
+          ChangeNotifierProvider(create: (_) => PlaceProvider()),
+          ChangeNotifierProvider(create: (_) => AudioProvider()),
+          ChangeNotifierProvider(create: (_) => NetworkProvider()),
+          ChangeNotifierProvider(
+            create: (_) => LocationProvider()..initialize(),
+          ),
+        ],
+        child: const QuetameTurismoApp(),
+      ),
+    );
+  } catch (e, st) {
+    debugPrint('Fatal error during startup: $e');
+    debugPrint('$st');
+    rethrow;
+  }
 }
 
 class QuetameTurismoApp extends StatelessWidget {

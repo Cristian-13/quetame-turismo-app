@@ -9,6 +9,7 @@ import 'package:quetame_turismo/features/map/presentation/widgets/place_bottom_s
 import 'package:quetame_turismo/models/place_model.dart';
 import 'package:quetame_turismo/providers/location_provider.dart';
 import 'package:quetame_turismo/providers/place_provider.dart';
+import 'package:quetame_turismo/providers/route_provider.dart';
 import 'package:quetame_turismo/providers/theme_provider.dart';
 import 'package:quetame_turismo/theme/app_colors.dart';
 
@@ -263,6 +264,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     final filteredPlaces = _placesForFilter(places);
     final locationProvider = context.watch<LocationProvider>();
     final userLocation = locationProvider.currentLocation;
+    final geoRoutes = context.watch<RouteProvider>().visibleGeoRoutesOnMainMap;
 
     final markers = [
       ...filteredPlaces.map(
@@ -321,6 +323,17 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               userAgentPackageName: 'com.quetame_turismo.app',
             ),
+            if (geoRoutes.isNotEmpty)
+              PolylineLayer(
+                polylines: [
+                  for (final path in geoRoutes)
+                    Polyline(
+                      points: path,
+                      strokeWidth: 4.0,
+                      color: Colors.redAccent,
+                    ),
+                ],
+              ),
             if (_routePolyline.isNotEmpty)
               PolylineLayer(
                 polylines: [

@@ -40,19 +40,10 @@ class CategoriesLegendCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color shadowColor = isDarkMode ? Colors.black54 : Colors.black12;
-
     return Container(
       height: 44,
       decoration: BoxDecoration(
         color: Colors.transparent,
-        boxShadow: [
-          BoxShadow(
-            color: shadowColor,
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,

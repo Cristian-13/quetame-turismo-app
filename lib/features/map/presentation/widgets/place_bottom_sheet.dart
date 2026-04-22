@@ -18,9 +18,12 @@ class PlaceBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.backgroundCream,
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
         borderRadius: AppRadii.topSheet,
         boxShadow: AppShadows.soft,
       ),
@@ -59,8 +62,9 @@ class PlaceBottomSheet extends StatelessWidget {
               Expanded(
                 child: Text(
                   place.name,
-                  style: AppTextStyles.sectionTitle.copyWith(
-                    color: AppColors.primaryTerracotta,
+                  style: textTheme.titleLarge?.copyWith(
+                    color: colorScheme.onSurface,
+                    fontWeight: FontWeight.w800,
                     fontSize: 20,
                   ),
                 ),
@@ -78,8 +82,8 @@ class PlaceBottomSheet extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             place.description,
-            style: AppTextStyles.bodyMuted.copyWith(
-              color: const Color(0xFF4D555D),
+            style: textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 14),

@@ -77,35 +77,36 @@ class _RoutesScreenState extends State<RoutesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final routes = context.watch<RouteProvider>().routes;
-    final visibleRoutes = routes.take(2).toList();
+    final routeProvider = context.watch<RouteProvider>();
+    final routes = routeProvider.routes;
 
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-        child: Column(
-          children: [
-            if (visibleRoutes.isNotEmpty)
-              Expanded(
-                child: RouteCard(
-                  route: visibleRoutes[0],
-                  downloaded: _downloadedRouteIds.contains(visibleRoutes[0].id),
-                  isDownloading: _downloadingRouteIds.contains(visibleRoutes[0].id),
-                  onDownloadPressed: () => _downloadRoute(visibleRoutes[0]),
-                ),
+        child: ListView.separated(
+          itemCount: routes.length,
+          separatorBuilder: (context, index) => const SizedBox(height: 14),
+          itemBuilder: (context, index) {
+            final route = routes[index];
+            return SizedBox(
+              height: 420,
+              child: RouteCard(
+                route: route,
+                downloaded: _downloadedRouteIds.contains(route.id),
+                isDownloading: _downloadingRouteIds.contains(route.id),
+                onDownloadPressed: () => _downloadRoute(route),
+                onStartRoutePressed: () {
+                  routeProvider.selectRouteForMap(route.id);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => RouteNavigationScreen(route: route),
+                    ),
+                  );
+                },
               ),
-            if (visibleRoutes.length > 1) ...[
-              const SizedBox(height: 14),
-              Expanded(
-                child: RouteCard(
-                  route: visibleRoutes[1],
-                  downloaded: _downloadedRouteIds.contains(visibleRoutes[1].id),
-                  isDownloading: _downloadingRouteIds.contains(visibleRoutes[1].id),
-                  onDownloadPressed: () => _downloadRoute(visibleRoutes[1]),
-                ),
-              ),
-            ],
-          ],
+            );
+          },
         ),
       ),
     );
@@ -117,6 +118,7 @@ class RouteCard extends StatelessWidget {
   final bool downloaded;
   final bool isDownloading;
   final VoidCallback onDownloadPressed;
+  final VoidCallback onStartRoutePressed;
 
   const RouteCard({
     super.key,
@@ -124,10 +126,14 @@ class RouteCard extends StatelessWidget {
     required this.downloaded,
     required this.isDownloading,
     required this.onDownloadPressed,
+    required this.onStartRoutePressed,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Card(
       margin: EdgeInsets.zero,
       elevation: 4,
@@ -143,8 +149,8 @@ class RouteCard extends StatelessWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.white,
-                  const Color(0xFFF6F8FA),
+                  colorScheme.surface,
+                  colorScheme.surfaceContainerHighest,
                 ],
               ),
             ),
@@ -200,9 +206,10 @@ class RouteCard extends StatelessWidget {
                       children: [
                         Text(
                           route.title,
-                          style: const TextStyle(
+                          style: textTheme.titleLarge?.copyWith(
                             fontSize: 20,
                             fontWeight: FontWeight.w800,
+                            color: colorScheme.onSurface,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -210,8 +217,8 @@ class RouteCard extends StatelessWidget {
                         const SizedBox(height: 6),
                         Text(
                           route.description,
-                          style: const TextStyle(
-                            color: Color(0xFF6B747C),
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
                             fontSize: 13.5,
                           ),
                           maxLines: 2,
@@ -292,15 +299,7 @@ class RouteCard extends StatelessWidget {
                             const SizedBox(width: 10),
                             Expanded(
                               child: ElevatedButton.icon(
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          RouteNavigationScreen(route: route),
-                                    ),
-                                  );
-                                },
+                                onPressed: onStartRoutePressed,
                                 icon: const Icon(Icons.near_me_rounded),
                                 label: const Text('Iniciar ruta'),
                                 style: ElevatedButton.styleFrom(
@@ -364,15 +363,17 @@ class _StatItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 16, color: const Color(0xFF5E6870)),
+        Icon(icon, size: 16, color: colorScheme.onSurfaceVariant),
         const SizedBox(width: 4),
         Text(
           value,
-          style: const TextStyle(
-            color: Color(0xFF4A545D),
+          style: textTheme.bodySmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
             fontWeight: FontWeight.w600,
             fontSize: 12,
           ),
