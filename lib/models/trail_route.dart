@@ -14,11 +14,14 @@ class TrailRoute {
   final Color difficultyTextColor;
   final List<LatLng> pathPoints;
 
-  /// URL de prueba de audioguía por ruta (SoundHelix 1 → r1, SoundHelix 2 → r2).
+  /// URL de prueba de audioguía por ruta.
+  /// Soporta IDs actuales y legado para evitar que todas las rutas caigan en el default.
   String get audioguideUrl {
     switch (id) {
+      case 'la_torre':
       case 'r1':
         return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+      case 'paramo_burras':
       case 'r2':
         return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3';
       default:

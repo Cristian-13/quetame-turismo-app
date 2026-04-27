@@ -75,6 +75,28 @@ class _RoutesScreenState extends State<RoutesScreen> {
     );
   }
 
+  Future<void> _removeDownloadedRoute(TrailRoute route) async {
+    if (!_downloadedRouteIds.contains(route.id) || _downloadingRouteIds.contains(route.id)) {
+      return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final updatedIds = <String>{..._downloadedRouteIds}..remove(route.id);
+    await prefs.setStringList(_downloadedRoutesKey, updatedIds.toList());
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _downloadedRouteIds.remove(route.id);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Descarga eliminada del dispositivo')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final routeProvider = context.watch<RouteProvider>();
@@ -84,6 +106,10 @@ class _RoutesScreenState extends State<RoutesScreen> {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
         child: ListView.separated(
+          physics: routes.length <= 2
+              ? const NeverScrollableScrollPhysics()
+              : const AlwaysScrollableScrollPhysics(),
+          shrinkWrap: routes.length <= 2,
           itemCount: routes.length,
           separatorBuilder: (context, index) => const SizedBox(height: 14),
           itemBuilder: (context, index) {
@@ -95,6 +121,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
                 downloaded: _downloadedRouteIds.contains(route.id),
                 isDownloading: _downloadingRouteIds.contains(route.id),
                 onDownloadPressed: () => _downloadRoute(route),
+                onRemoveDownloadPressed: () => _removeDownloadedRoute(route),
                 onStartRoutePressed: () {
                   routeProvider.selectRouteForMap(route.id);
                   Navigator.push(
@@ -118,6 +145,7 @@ class RouteCard extends StatelessWidget {
   final bool downloaded;
   final bool isDownloading;
   final VoidCallback onDownloadPressed;
+  final VoidCallback onRemoveDownloadPressed;
   final VoidCallback onStartRoutePressed;
 
   const RouteCard({
@@ -126,6 +154,7 @@ class RouteCard extends StatelessWidget {
     required this.downloaded,
     required this.isDownloading,
     required this.onDownloadPressed,
+    required this.onRemoveDownloadPressed,
     required this.onStartRoutePressed,
   });
 
@@ -253,14 +282,18 @@ class RouteCard extends StatelessWidget {
                           children: [
                             Expanded(
                               child: OutlinedButton(
-                                onPressed: (downloaded || isDownloading)
+                                onPressed: isDownloading
                                     ? null
-                                    : onDownloadPressed,
+                                    : (downloaded
+                                        ? onRemoveDownloadPressed
+                                        : onDownloadPressed),
                                 style: OutlinedButton.styleFrom(
-                                  foregroundColor: downloadActionColor,
+                                  foregroundColor: downloaded
+                                      ? Colors.redAccent
+                                      : downloadActionColor,
                                   side: BorderSide(
                                     color: downloaded
-                                        ? const Color(0xFF3E8BFF)
+                                        ? Colors.redAccent
                                         : const Color(0xFFD9DEE2),
                                   ),
                                   padding: const EdgeInsets.symmetric(vertical: 11),
@@ -280,17 +313,17 @@ class RouteCard extends StatelessWidget {
                                     else
                                       Icon(
                                         downloaded
-                                            ? Icons.check_circle_rounded
+                                            ? Icons.delete_outline_rounded
                                             : Icons.download_for_offline_outlined,
                                         size: 18,
                                         color: downloaded
-                                            ? const Color(0xFF3E8BFF)
+                                            ? Colors.redAccent
                                             : null,
                                       ),
                                     const SizedBox(width: 8),
                                     Text(
                                       downloaded
-                                          ? 'Descargado'
+                                          ? 'Eliminar descarga'
                                           : (isDownloading
                                               ? 'Descargando...'
                                               : 'Descargar'),
