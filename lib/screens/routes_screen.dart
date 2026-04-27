@@ -131,8 +131,13 @@ class RouteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final downloadActionColor = downloaded
+        ? const Color(0xFF3E8BFF)
+        : (isDark ? Colors.white : const Color(0xFF2F3A40));
 
     return Card(
       margin: EdgeInsets.zero,
@@ -252,9 +257,7 @@ class RouteCard extends StatelessWidget {
                                     ? null
                                     : onDownloadPressed,
                                 style: OutlinedButton.styleFrom(
-                                  foregroundColor: downloaded
-                                      ? const Color(0xFF3E8BFF)
-                                      : const Color(0xFF2F3A40),
+                                  foregroundColor: downloadActionColor,
                                   side: BorderSide(
                                     color: downloaded
                                         ? const Color(0xFF3E8BFF)

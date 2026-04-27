@@ -10,33 +10,38 @@ class EventsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final events = context.watch<EventProvider>().events;
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-      children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [AppColors.primaryTerracotta, AppColors.secondaryGold],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+    return ColoredBox(
+      color: isDark ? const Color(0xFF1E1E1E) : theme.scaffoldBackgroundColor,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [AppColors.flagGreen, Color(0xFF16633B)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
             ),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: const Text(
-            'Agenda Bicentenario',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
+            child: const Text(
+              'Agenda Bicentenario',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 16),
-        ...events.map((event) => EventCard(event: event)),
-      ],
+          const SizedBox(height: 16),
+          ...events.map((event) => EventCard(event: event)),
+        ],
+      ),
     );
   }
 }
@@ -51,10 +56,12 @@ class EventCard extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final muted = scheme.onSurfaceVariant;
+    final isDark = theme.brightness == Brightness.dark;
 
     return Card(
       clipBehavior: Clip.antiAlias,
       margin: const EdgeInsets.only(bottom: 16),
+      color: isDark ? const Color(0xFF1E1E1E) : theme.cardColor,
       child: InkWell(
         onTap: () => EventDetailBottomSheet.show(context, event),
         child: Row(
@@ -63,7 +70,7 @@ class EventCard extends StatelessWidget {
               width: 86,
               padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
               decoration: BoxDecoration(
-                color: AppColors.primaryTerracotta,
+                color: AppColors.flagGreen,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(16),
                   bottomLeft: Radius.circular(16),
