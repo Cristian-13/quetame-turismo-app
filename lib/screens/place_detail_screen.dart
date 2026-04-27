@@ -10,12 +10,16 @@ class PlaceDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final showMenu = place.category == PlaceCategory.gastronomia;
+    final isDark = theme.brightness == Brightness.dark;
+    final showMenu = place.category.label == 'Restaurantes';
+    final pageBg = isDark ? const Color(0xFF1E1E1E) : theme.scaffoldBackgroundColor;
+    final sheetBg = isDark ? const Color(0xFF1E1E1E) : colorScheme.surface;
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundCream,
+      backgroundColor: pageBg,
       body: DefaultTabController(
         length: showMenu ? 3 : 2,
         child: SingleChildScrollView(
@@ -53,9 +57,12 @@ class PlaceDetailScreen extends StatelessWidget {
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.fromLTRB(20, 22, 20, 28),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: AppRadii.topSheet,
+                  decoration: BoxDecoration(
+                    color: sheetBg,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(32),
+                      topRight: Radius.circular(32),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -134,7 +141,8 @@ class PlaceDetailScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       TabBar(
-                        isScrollable: true,
+                        isScrollable: false,
+                        tabAlignment: TabAlignment.fill,
                         indicatorColor: AppColors.flagGreen,
                         labelColor: AppColors.flagGreen,
                         unselectedLabelColor: colorScheme.onSurfaceVariant,
@@ -229,15 +237,25 @@ class _CircleActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
         shape: BoxShape.circle,
-        boxShadow: AppShadows.soft,
+        boxShadow: isDark
+            ? const [
+                BoxShadow(
+                  color: Colors.black54,
+                  blurRadius: 8,
+                  offset: Offset(0, 3),
+                ),
+              ]
+            : AppShadows.soft,
       ),
       child: IconButton(
         onPressed: onPressed,
-        icon: Icon(icon, color: const Color(0xFF39434C)),
+        icon: Icon(icon, color: theme.colorScheme.onSurface),
       ),
     );
   }
@@ -364,6 +382,7 @@ class _MenuItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(10),
@@ -382,7 +401,9 @@ class _MenuItemCard extends StatelessWidget {
                 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=500&q=60',
                 fit: BoxFit.cover,
                 errorBuilder: (_, _, _) =>
-                    Container(color: const Color(0xFFDDE2E6)),
+                    Container(
+                      color: isDark ? const Color(0xFF2D2D2D) : const Color(0xFFDDE2E6),
+                    ),
               ),
             ),
           ),
