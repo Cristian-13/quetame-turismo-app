@@ -11,7 +11,6 @@ import 'package:quetame_turismo/providers/location_provider.dart';
 import 'package:quetame_turismo/providers/place_provider.dart';
 import 'package:quetame_turismo/providers/route_provider.dart';
 import 'package:quetame_turismo/providers/theme_provider.dart';
-import 'package:quetame_turismo/theme/app_colors.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -46,12 +45,13 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   }
 
   void _snack(String message) {
+    final scheme = Theme.of(context).colorScheme;
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
       ..showSnackBar(
         SnackBar(
           content: Text(message),
-          backgroundColor: AppColors.primaryTerracotta,
+          backgroundColor: scheme.primary,
         ),
       );
   }
@@ -216,7 +216,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         ..showSnackBar(
           SnackBar(
             content: const Text('El GPS está apagado'),
-            backgroundColor: AppColors.primaryTerracotta,
+            backgroundColor: Theme.of(context).colorScheme.primary,
             action: SnackBarAction(
               label: 'Encender',
               textColor: Colors.white,
@@ -240,7 +240,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
             content: const Text(
               'Necesitamos permisos para guiarte en los senderos.',
             ),
-            backgroundColor: AppColors.primaryTerracotta,
+            backgroundColor: Theme.of(context).colorScheme.primary,
             action: SnackBarAction(
               label: 'Abrir Ajustes',
               textColor: Colors.white,

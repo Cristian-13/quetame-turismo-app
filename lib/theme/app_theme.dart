@@ -47,7 +47,7 @@ class AppTextStyles {
 class AppTheme {
   static ThemeData lightTheme() {
     return ThemeData(
-      colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primaryTerracotta),
+      colorScheme: ColorScheme.fromSeed(seedColor: AppColors.flagGreen),
       scaffoldBackgroundColor: AppColors.backgroundCream,
       cardTheme: const CardThemeData(
         color: Colors.white,
@@ -55,12 +55,26 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: AppRadii.lg),
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        selectedItemColor: AppColors.primaryTerracotta,
+        selectedItemColor: AppColors.flagGreen,
       ),
-      navigationBarTheme: const NavigationBarThemeData(
-        indicatorColor: Color(0x33A3402D),
-        iconTheme: WidgetStatePropertyAll(
-          IconThemeData(color: AppColors.primaryTerracotta),
+      navigationBarTheme: NavigationBarThemeData(
+        indicatorColor: AppColors.flagGreen.withValues(alpha: 0.18),
+        iconTheme: WidgetStateProperty.resolveWith(
+          (states) {
+            final selected = states.contains(WidgetState.selected);
+            return IconThemeData(
+              color: selected ? AppColors.flagGreen : const Color(0xFF5F6469),
+            );
+          },
+        ),
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (states) {
+            final selected = states.contains(WidgetState.selected);
+            return TextStyle(
+              color: selected ? AppColors.flagGreen : const Color(0xFF5F6469),
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+            );
+          },
         ),
       ),
       useMaterial3: true,
@@ -71,12 +85,32 @@ class AppTheme {
     return ThemeData(
       brightness: Brightness.dark,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.primaryTerracotta,
+        seedColor: AppColors.flagGreen,
         brightness: Brightness.dark,
       ),
       cardTheme: const CardThemeData(
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: AppRadii.lg),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        indicatorColor: AppColors.flagGreen.withValues(alpha: 0.18),
+        iconTheme: WidgetStateProperty.resolveWith(
+          (states) {
+            final selected = states.contains(WidgetState.selected);
+            return IconThemeData(
+              color: selected ? AppColors.flagGreen : const Color(0xFFB0B8C0),
+            );
+          },
+        ),
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (states) {
+            final selected = states.contains(WidgetState.selected);
+            return TextStyle(
+              color: selected ? AppColors.flagGreen : const Color(0xFFB0B8C0),
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+            );
+          },
+        ),
       ),
       useMaterial3: true,
     );

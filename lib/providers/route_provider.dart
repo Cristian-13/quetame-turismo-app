@@ -131,7 +131,7 @@ class RouteProvider extends ChangeNotifier {
           downloaded: true,
           difficulty: 'Moderada',
           difficultyColor: const Color(0xFFFFE08A),
-          difficultyTextColor: const Color(0xFF6C4D00),
+          difficultyTextColor: const Color(0xFF1E1E1E),
           pathPoints: laTorrePoints,
         ),
         TrailRoute(
@@ -162,7 +162,7 @@ class RouteProvider extends ChangeNotifier {
           downloaded: false,
           difficulty: 'Moderada',
           difficultyColor: Color(0xFFFFE08A),
-          difficultyTextColor: Color(0xFF6C4D00),
+          difficultyTextColor: Color(0xFF1E1E1E),
           pathPoints: [],
         ),
         TrailRoute(

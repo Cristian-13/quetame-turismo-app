@@ -105,33 +105,46 @@ class _RoutesScreenState extends State<RoutesScreen> {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-        child: ListView.separated(
-          physics: routes.length <= 2
-              ? const NeverScrollableScrollPhysics()
-              : const AlwaysScrollableScrollPhysics(),
-          shrinkWrap: routes.length <= 2,
-          itemCount: routes.length,
-          separatorBuilder: (context, index) => const SizedBox(height: 14),
-          itemBuilder: (context, index) {
-            final route = routes[index];
-            return SizedBox(
-              height: 420,
-              child: RouteCard(
-                route: route,
-                downloaded: _downloadedRouteIds.contains(route.id),
-                isDownloading: _downloadingRouteIds.contains(route.id),
-                onDownloadPressed: () => _downloadRoute(route),
-                onRemoveDownloadPressed: () => _removeDownloadedRoute(route),
-                onStartRoutePressed: () {
-                  routeProvider.selectRouteForMap(route.id);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => RouteNavigationScreen(route: route),
-                    ),
-                  );
-                },
-              ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            const separatorHeight = 14.0;
+            final count = routes.length;
+
+            final bool shouldDisableScroll = count <= 2;
+            final double computedItemHeight = shouldDisableScroll && count > 0
+                ? ((constraints.maxHeight - (separatorHeight * (count - 1))) / count)
+                : 420.0;
+            final double itemHeight = computedItemHeight.clamp(320.0, 520.0);
+
+            return ListView.separated(
+              physics: shouldDisableScroll
+                  ? const NeverScrollableScrollPhysics()
+                  : const AlwaysScrollableScrollPhysics(),
+              itemCount: count,
+              separatorBuilder: (context, index) =>
+                  const SizedBox(height: separatorHeight),
+              itemBuilder: (context, index) {
+                final route = routes[index];
+                return SizedBox(
+                  height: shouldDisableScroll ? itemHeight : 420,
+                  child: RouteCard(
+                    route: route,
+                    downloaded: _downloadedRouteIds.contains(route.id),
+                    isDownloading: _downloadingRouteIds.contains(route.id),
+                    onDownloadPressed: () => _downloadRoute(route),
+                    onRemoveDownloadPressed: () => _removeDownloadedRoute(route),
+                    onStartRoutePressed: () {
+                      routeProvider.selectRouteForMap(route.id);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => RouteNavigationScreen(route: route),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
             );
           },
         ),
@@ -165,8 +178,9 @@ class RouteCard extends StatelessWidget {
     final textTheme = theme.textTheme;
     final isDark = theme.brightness == Brightness.dark;
     final downloadActionColor = downloaded
-        ? const Color(0xFF3E8BFF)
+        ? AppColors.flagGreen
         : (isDark ? Colors.white : const Color(0xFF2F3A40));
+    final outlineColor = colorScheme.outlineVariant;
 
     return Card(
       margin: EdgeInsets.zero,
@@ -294,7 +308,7 @@ class RouteCard extends StatelessWidget {
                                   side: BorderSide(
                                     color: downloaded
                                         ? Colors.redAccent
-                                        : const Color(0xFFD9DEE2),
+                                        : outlineColor,
                                   ),
                                   padding: const EdgeInsets.symmetric(vertical: 11),
                                   shape: RoundedRectangleBorder(
@@ -370,7 +384,8 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color bgColor = downloaded ? const Color(0xFF3E8BFF) : const Color(0xFFB0B8C0);
+    final scheme = Theme.of(context).colorScheme;
+    final Color bgColor = downloaded ? AppColors.flagGreen : scheme.onSurfaceVariant;
     return Chip(
       avatar: Icon(
         downloaded ? Icons.check_circle : Icons.download_outlined,

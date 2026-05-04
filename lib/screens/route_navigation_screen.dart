@@ -33,6 +33,8 @@ class _RouteNavigationScreenState extends State<RouteNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final routePoints = widget.route.pathPoints;
     final initialCenter = routePoints.isNotEmpty
         ? routePoints.first
@@ -97,7 +99,7 @@ class _RouteNavigationScreenState extends State<RouteNavigationScreen> {
                   children: [
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: scheme.surface,
                         shape: BoxShape.circle,
                         boxShadow: AppShadows.soft,
                       ),
@@ -106,7 +108,7 @@ class _RouteNavigationScreenState extends State<RouteNavigationScreen> {
                           context.read<RouteProvider>().clearSelectedRoute();
                           Navigator.pop(context);
                         },
-                        icon: const Icon(Icons.arrow_back),
+                        icon: Icon(Icons.arrow_back, color: scheme.onSurface),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -117,14 +119,14 @@ class _RouteNavigationScreenState extends State<RouteNavigationScreen> {
                           vertical: 10,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: scheme.surface,
                           borderRadius: AppRadii.md,
                           boxShadow: AppShadows.soft,
                         ),
                         child: Text(
                           'Navegando: ${widget.route.title}',
                           style: AppTextStyles.bodyMuted.copyWith(
-                            color: AppColors.primaryTerracotta,
+                            color: AppColors.flagGreen,
                             fontWeight: FontWeight.w700,
                           ),
                           overflow: TextOverflow.ellipsis,
@@ -158,8 +160,8 @@ class _RouteNavigationScreenState extends State<RouteNavigationScreen> {
               bottom: 0,
               child: Container(
                 padding: const EdgeInsets.fromLTRB(16, 14, 16, 22),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
+                decoration: BoxDecoration(
+                  color: scheme.surface,
                   borderRadius: AppRadii.topSheet,
                   boxShadow: AppShadows.soft,
                 ),
@@ -185,18 +187,18 @@ class _RouteNavigationScreenState extends State<RouteNavigationScreen> {
                         Text(
                           '2.5 km de 8.5 km',
                           style: AppTextStyles.bodyMuted.copyWith(
-                            color: const Color(0xFF6A7075),
+                            color: scheme.onSurfaceVariant,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 10),
-                    const LinearProgressIndicator(
+                    LinearProgressIndicator(
                       value: 2.5 / 8.5,
                       minHeight: 8,
-                      backgroundColor: Color(0xFFE2E7EA),
-                      valueColor: AlwaysStoppedAnimation(AppColors.flagGreen),
+                      backgroundColor: scheme.surfaceContainerHighest,
+                      valueColor: const AlwaysStoppedAnimation(AppColors.flagGreen),
                     ),
                     const SizedBox(height: 12),
                     SizedBox(

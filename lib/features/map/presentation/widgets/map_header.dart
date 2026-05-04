@@ -17,9 +17,8 @@ class MapHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color headerColor = isDarkMode
-        ? const Color(0xFF1E1E1E)
-        : AppColors.primaryTerracotta;
+    final scheme = Theme.of(context).colorScheme;
+    final Color headerColor = isDarkMode ? scheme.surface : AppColors.flagGreen;
     final isConnected = context.watch<NetworkProvider>().isConnected;
 
     return Container(
