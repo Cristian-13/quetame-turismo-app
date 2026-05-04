@@ -5,9 +5,12 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:quetame_turismo/features/map/presentation/widgets/categories_legend_card.dart';
+import 'package:quetame_turismo/models/place_model.dart';
 import 'package:quetame_turismo/providers/location_provider.dart';
 import 'package:quetame_turismo/providers/route_provider.dart';
 import 'package:quetame_turismo/providers/theme_provider.dart';
+import 'package:quetame_turismo/screens/place_detail_screen.dart';
+import 'package:quetame_turismo/theme/app_colors.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -118,29 +121,103 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      isScrollControlled: true,
       builder: (_) {
         final textTheme = Theme.of(context).textTheme;
         final scheme = Theme.of(context).colorScheme;
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                site.nombre,
-                style: textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 150,
+                    child: Image.network(
+                      site.imagenUrl,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
+                        return Container(
+                          color: Colors.grey.shade300,
+                          alignment: Alignment.center,
+                          child: const CircularProgressIndicator(strokeWidth: 2.2),
+                        );
+                      },
+                      errorBuilder: (_, __, ___) => Container(
+                        color: scheme.surfaceContainerHighest,
+                        alignment: Alignment.center,
+                        child: Icon(
+                          Icons.image_not_supported_outlined,
+                          color: scheme.onSurfaceVariant,
+                          size: 34,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                site.descripcion,
-                style: textTheme.bodyMedium?.copyWith(
-                  color: scheme.onSurfaceVariant,
+                const SizedBox(height: 14),
+                Text(
+                  site.nombre,
+                  style: textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 8),
+                Text(
+                  site.descripcion,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _runCameraAnimation(
+                            LatLng(site.latitud, site.longitud),
+                            16.0,
+                          );
+                        },
+                        icon: const Icon(Icons.directions),
+                        label: const Text('Fijar Ruta'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            this.context,
+                            MaterialPageRoute(
+                              builder: (_) => PlaceDetailScreen(
+                                place: site.toPlaceModel(),
+                              ),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.flagGreen,
+                          foregroundColor: Colors.white,
+                        ),
+                        icon: const Icon(Icons.open_in_new_rounded),
+                        label: const Text('Ver Detalles'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -346,6 +423,7 @@ class _FirestoreSite {
   final String nombre;
   final String descripcion;
   final String category;
+  final String imagenUrl;
   final double latitud;
   final double longitud;
 
@@ -354,6 +432,7 @@ class _FirestoreSite {
     required this.nombre,
     required this.descripcion,
     required this.category,
+    required this.imagenUrl,
     required this.latitud,
     required this.longitud,
   });
@@ -362,6 +441,7 @@ class _FirestoreSite {
     final nombre = (data['nombre'] ?? '').toString().trim();
     final descripcion = (data['descripcion'] ?? '').toString().trim();
     final categoriaRaw = (data['categoria'] ?? '').toString();
+    final imagenUrl = (data['imagen_url'] ?? '').toString().trim();
     final lat = data['latitud'];
     final lng = data['longitud'];
 
@@ -380,8 +460,24 @@ class _FirestoreSite {
       nombre: nombre,
       descripcion: descripcion,
       category: _normalizeCategory(categoriaRaw),
+      imagenUrl: imagenUrl,
       latitud: latitud,
       longitud: longitud,
+    );
+  }
+
+  PlaceModel toPlaceModel() {
+    return PlaceModel(
+      id: id,
+      name: nombre,
+      description: descripcion,
+      category: _toPlaceCategory(category),
+      imageUrl: imagenUrl.isEmpty
+          ? 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1200&q=60'
+          : imagenUrl,
+      latitude: latitud,
+      longitude: longitud,
+      phone: null,
     );
   }
 }
@@ -402,6 +498,20 @@ String _normalizeCategory(String raw) {
       return 'Gastronomía';
     default:
       return 'Naturaleza';
+  }
+}
+
+PlaceCategory _toPlaceCategory(String category) {
+  switch (category) {
+    case 'Historia':
+      return PlaceCategory.historia;
+    case 'Mirador':
+      return PlaceCategory.mirador;
+    case 'Gastronomía':
+      return PlaceCategory.gastronomia;
+    case 'Naturaleza':
+    default:
+      return PlaceCategory.naturaleza;
   }
 }
 
