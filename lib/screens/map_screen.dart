@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
-import 'package:quetame_turismo/features/map/data/osrm_route_service.dart';
 import 'package:quetame_turismo/features/map/presentation/widgets/categories_legend_card.dart';
-import 'package:quetame_turismo/features/map/presentation/widgets/place_bottom_sheet.dart';
-import 'package:quetame_turismo/models/place_model.dart';
 import 'package:quetame_turismo/providers/location_provider.dart';
-import 'package:quetame_turismo/providers/place_provider.dart';
 import 'package:quetame_turismo/providers/route_provider.dart';
 import 'package:quetame_turismo/providers/theme_provider.dart';
 
@@ -24,11 +21,9 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   static const double _defaultMapZoom = 14.0;
   final MapController _mapController = MapController();
 
-  List<LatLng> _routePolyline = [];
   AnimationController? _cameraAnim;
-  bool _routingBusy = false;
 
-  /// Filtro de categorías: 'Todos' o el [PlaceCategory.label] (Historia, Naturaleza, Mirador).
+  /// Filtro de categorías: 'Todos' o categoría normalizada desde Firestore.
   String selectedCategory = 'Todos';
 
   @override
@@ -40,20 +35,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   void _removeRouteAndResetOverview() {
     _cameraAnim?.dispose();
     _cameraAnim = null;
-    setState(() => _routePolyline = []);
     _runCameraAnimation(_quetameCenter, _defaultMapZoom);
-  }
-
-  void _snack(String message) {
-    final scheme = Theme.of(context).colorScheme;
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: scheme.primary,
-        ),
-      );
   }
 
   void _animateCameraToInclude(List<LatLng> points) {
@@ -69,18 +51,17 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     _runCameraAnimation(targetCam.center, targetCam.zoom);
   }
 
-  List<PlaceModel> _placesForFilter(List<PlaceModel> all) {
+  List<_FirestoreSite> _sitesForFilter(List<_FirestoreSite> all) {
     if (selectedCategory == 'Todos') return all;
-    return all.where((p) => p.category.label == selectedCategory).toList();
+    return all.where((p) => p.category == selectedCategory).toList();
   }
 
-  void _fitCameraToFilteredPlaces(String category) {
-    final all = context.read<PlaceProvider>().places;
+  void _fitCameraToFilteredSites(String category, List<_FirestoreSite> all) {
     final filtered = category == 'Todos'
         ? all
-        : all.where((p) => p.category.label == category).toList();
+        : all.where((p) => p.category == category).toList();
     final points =
-        filtered.map((p) => LatLng(p.latitude, p.longitude)).toList();
+        filtered.map((p) => LatLng(p.latitud, p.longitud)).toList();
     if (points.isEmpty) {
       _runCameraAnimation(_quetameCenter, _defaultMapZoom);
       return;
@@ -92,11 +73,11 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     _animateCameraToInclude(points);
   }
 
-  void _onCategorySelected(String category) {
+  void _onCategorySelected(String category, List<_FirestoreSite> allSites) {
     setState(() => selectedCategory = category);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      _fitCameraToFilteredPlaces(category);
+      _fitCameraToFilteredSites(category, allSites);
     });
   }
 
@@ -133,75 +114,37 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     });
   }
 
-  Future<void> _onPlaceRutaPressed(PlaceModel place) async {
-    final locationProvider = context.read<LocationProvider>();
-    await locationProvider.refreshLocationState();
-    if (!mounted) return;
-
-    if (!locationProvider.isLocationServiceEnabled) {
-      _snack('Activa el GPS para trazar la ruta');
-      return;
-    }
-
-    if (locationProvider.permission == LocationPermission.denied) {
-      await locationProvider.requestPermissionAgain();
-      if (!mounted) return;
-    }
-
-    if (locationProvider.permission == LocationPermission.deniedForever ||
-        locationProvider.permission == LocationPermission.denied) {
-      _snack('Necesitamos tu ubicación para calcular la ruta');
-      return;
-    }
-
-    LatLng? user = locationProvider.currentLocation;
-    if (user == null) {
-      try {
-        final pos = await Geolocator.getCurrentPosition();
-        user = LatLng(pos.latitude, pos.longitude);
-      } catch (_) {
-        _snack('No se pudo obtener tu ubicación');
-        return;
-      }
-    }
-
-    setState(() => _routingBusy = true);
-
-    try {
-      final dest = LatLng(place.latitude, place.longitude);
-      final points = await OsrmRouteService.fetchDrivingRoute(
-        origin: user,
-        destination: dest,
-      );
-      if (!mounted) return;
-
-      if (points.isEmpty) {
-        setState(() => _routingBusy = false);
-        _snack('No se pudo calcular la ruta');
-        return;
-      }
-
-      final boundsPoints = [...points, user, dest];
-
-      setState(() {
-        _routePolyline = points;
-        _routingBusy = false;
-      });
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _animateCameraToInclude(boundsPoints);
-      });
-    } on OsrmRouteException catch (e) {
-      if (mounted) {
-        setState(() => _routingBusy = false);
-        _snack(e.message);
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(() => _routingBusy = false);
-        _snack('Error al obtener la ruta');
-      }
-    }
+  void _showSiteBottomSheet(_FirestoreSite site) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (_) {
+        final textTheme = Theme.of(context).textTheme;
+        final scheme = Theme.of(context).colorScheme;
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                site.nombre,
+                style: textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                site.descripcion,
+                style: textTheme.bodyMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _handleMyLocationPressed() async {
@@ -260,59 +203,75 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
-    final places = context.watch<PlaceProvider>().places;
-    final filteredPlaces = _placesForFilter(places);
     final locationProvider = context.watch<LocationProvider>();
     final userLocation = locationProvider.currentLocation;
     final geoRoutes = context.watch<RouteProvider>().visibleGeoRoutesOnMainMap;
 
-    final markers = [
-      ...filteredPlaces.map(
-        (place) => Marker(
-          width: 36,
-          height: 36,
-          point: LatLng(place.latitude, place.longitude),
-          child: GestureDetector(
-            onTap: () {
-              showModalBottomSheet<void>(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                builder: (_) => PlaceBottomSheet(
-                  place: place,
-                  onRutaPressed: _onPlaceRutaPressed,
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance.collection('sitios').snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                'Error al cargar sitios: ${snapshot.error}',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          );
+        }
+
+        final sites = snapshot.data?.docs
+                .map((doc) => _FirestoreSite.fromMap(doc.id, doc.data()))
+                .whereType<_FirestoreSite>()
+                .toList() ??
+            <_FirestoreSite>[];
+        final filteredSites = _sitesForFilter(sites);
+
+        final markers = [
+          ...filteredSites.map(
+            (site) => Marker(
+              width: 36,
+              height: 36,
+              point: LatLng(site.latitud, site.longitud),
+              child: GestureDetector(
+                onTap: () => _showSiteBottomSheet(site),
+                child: _MapPin(
+                  color: CategoriesLegendCard.dotColorForLabel(site.category),
                 ),
-              );
-            },
-            child: _MapPin(color: place.category.color),
-          ),
-        ),
-      ),
-      if (userLocation != null)
-        Marker(
-          width: 24,
-          height: 24,
-          point: userLocation,
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.blueAccent,
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 3),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 6,
-                  offset: Offset(0, 2),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
-    ];
+          if (userLocation != null)
+            Marker(
+              width: 24,
+              height: 24,
+              point: userLocation,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.blueAccent,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 3),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ];
 
-    return Stack(
-      children: [
-        FlutterMap(
+        return Stack(
+          children: [
+            FlutterMap(
           mapController: _mapController,
           options: const MapOptions(
             initialCenter: _quetameCenter,
@@ -334,16 +293,6 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                     ),
                 ],
               ),
-            if (_routePolyline.isNotEmpty)
-              PolylineLayer(
-                polylines: [
-                  Polyline(
-                    points: _routePolyline,
-                    strokeWidth: 5,
-                    color: Colors.blue,
-                  ),
-                ],
-              ),
             MarkerLayer(
               markers: markers,
             ),
@@ -358,7 +307,8 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
             child: CategoriesLegendCard(
               isDarkMode: isDarkMode,
               selectedCategory: selectedCategory,
-              onCategorySelected: _onCategorySelected,
+              onCategorySelected: (category) =>
+                  _onCategorySelected(category, sites),
             ),
           ),
         ),
@@ -369,15 +319,13 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              if (_routePolyline.isNotEmpty) ...[
-                FloatingActionButton.small(
-                  heroTag: 'map_clear_route',
-                  onPressed: _removeRouteAndResetOverview,
-                  tooltip: 'Quitar ruta',
-                  child: const Icon(Icons.close_rounded),
-                ),
-                const SizedBox(height: 12),
-              ],
+              FloatingActionButton.small(
+                heroTag: 'map_reset_view',
+                onPressed: _removeRouteAndResetOverview,
+                tooltip: 'Restablecer vista',
+                child: const Icon(Icons.center_focus_strong_rounded),
+              ),
+              const SizedBox(height: 12),
               FloatingActionButton(
                 heroTag: 'map_my_location',
                 onPressed: _handleMyLocationPressed,
@@ -386,32 +334,74 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
             ],
           ),
         ),
-        if (_routingBusy)
-          const Positioned.fill(
-            child: IgnorePointer(
-              child: Center(
-                child: Card(
-                  child: Padding(
-                    padding: EdgeInsets.all(20),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox(
-                          width: 28,
-                          height: 28,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                        SizedBox(height: 12),
-                        Text('Calculando ruta…'),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-      ],
+          ],
+        );
+      },
     );
+  }
+}
+
+class _FirestoreSite {
+  final String id;
+  final String nombre;
+  final String descripcion;
+  final String category;
+  final double latitud;
+  final double longitud;
+
+  const _FirestoreSite({
+    required this.id,
+    required this.nombre,
+    required this.descripcion,
+    required this.category,
+    required this.latitud,
+    required this.longitud,
+  });
+
+  static _FirestoreSite? fromMap(String docId, Map<String, dynamic> data) {
+    final nombre = (data['nombre'] ?? '').toString().trim();
+    final descripcion = (data['descripcion'] ?? '').toString().trim();
+    final categoriaRaw = (data['categoria'] ?? '').toString();
+    final lat = data['latitud'];
+    final lng = data['longitud'];
+
+    if (nombre.isEmpty || lat == null || lng == null) {
+      return null;
+    }
+
+    final latitud = lat is num ? lat.toDouble() : double.tryParse('$lat');
+    final longitud = lng is num ? lng.toDouble() : double.tryParse('$lng');
+    if (latitud == null || longitud == null) {
+      return null;
+    }
+
+    return _FirestoreSite(
+      id: docId,
+      nombre: nombre,
+      descripcion: descripcion,
+      category: _normalizeCategory(categoriaRaw),
+      latitud: latitud,
+      longitud: longitud,
+    );
+  }
+}
+
+String _normalizeCategory(String raw) {
+  final value = raw.trim().toLowerCase();
+  switch (value) {
+    case 'historia':
+      return 'Historia';
+    case 'naturaleza':
+      return 'Naturaleza';
+    case 'mirador':
+      return 'Mirador';
+    case 'gastronomia':
+    case 'gastronomía':
+    case 'restaurante':
+    case 'comida':
+      return 'Gastronomía';
+    default:
+      return 'Naturaleza';
   }
 }
 
