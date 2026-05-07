@@ -422,6 +422,9 @@ class _FirestoreSite {
   final String id;
   final String nombre;
   final String descripcion;
+  final String historia;
+  final String horarios;
+  final String categoriaRaw;
   final String category;
   final String imagenUrl;
   final double latitud;
@@ -431,6 +434,9 @@ class _FirestoreSite {
     required this.id,
     required this.nombre,
     required this.descripcion,
+    required this.historia,
+    required this.horarios,
+    required this.categoriaRaw,
     required this.category,
     required this.imagenUrl,
     required this.latitud,
@@ -440,6 +446,8 @@ class _FirestoreSite {
   static _FirestoreSite? fromMap(String docId, Map<String, dynamic> data) {
     final nombre = (data['nombre'] ?? '').toString().trim();
     final descripcion = (data['descripcion'] ?? '').toString().trim();
+    final historia = (data['historia'] ?? '').toString().trim();
+    final horarios = (data['horarios'] ?? '').toString().trim();
     final categoriaRaw = (data['categoria'] ?? '').toString();
     final imagenUrl = (data['imagen_url'] ?? '').toString().trim();
     final lat = data['latitud'];
@@ -459,6 +467,9 @@ class _FirestoreSite {
       id: docId,
       nombre: nombre,
       descripcion: descripcion,
+      historia: historia,
+      horarios: horarios,
+      categoriaRaw: categoriaRaw,
       category: _normalizeCategory(categoriaRaw),
       imagenUrl: imagenUrl,
       latitud: latitud,
@@ -472,12 +483,15 @@ class _FirestoreSite {
       name: nombre,
       description: descripcion,
       category: _toPlaceCategory(category),
+      rawCategory: categoriaRaw,
       imageUrl: imagenUrl.isEmpty
           ? 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1200&q=60'
           : imagenUrl,
       latitude: latitud,
       longitude: longitud,
       phone: null,
+      historia: historia,
+      horarios: horarios,
     );
   }
 }

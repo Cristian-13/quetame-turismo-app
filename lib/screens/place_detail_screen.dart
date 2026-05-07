@@ -3,18 +3,39 @@ import 'package:quetame_turismo/models/place_model.dart';
 import 'package:quetame_turismo/theme/app_colors.dart';
 import 'package:quetame_turismo/theme/app_theme.dart';
 
-class PlaceDetailScreen extends StatelessWidget {
+class PlaceDetailScreen extends StatefulWidget {
   final PlaceModel place;
 
   const PlaceDetailScreen({super.key, required this.place});
 
   @override
+  State<PlaceDetailScreen> createState() => _PlaceDetailScreenState();
+}
+
+class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
+  bool _isFavorite = false;
+
+  void _showActionSnack(String message) {
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final place = widget.place;
     final theme = Theme.of(context);
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final isDark = theme.brightness == Brightness.dark;
-    final showMenu = place.category.label == 'Restaurantes';
+    final showMenu = place.rawCategory.trim().toLowerCase() == 'restaurante';
+    final historia = (place.historia ?? '').trim().isEmpty
+        ? 'Historia no disponible'
+        : place.historia!.trim();
+    final descripcion = place.description.trim().isEmpty
+        ? 'Descripción no disponible'
+        : place.description.trim();
+    final horarios = place.horarios?.trim() ?? '';
     final pageBg = isDark ? const Color(0xFF1E1E1E) : theme.scaffoldBackgroundColor;
     final sheetBg = isDark ? const Color(0xFF1E1E1E) : colorScheme.surface;
 
@@ -41,12 +62,14 @@ class PlaceDetailScreen extends StatelessWidget {
                       const Spacer(),
                       _CircleActionButton(
                         icon: Icons.share_outlined,
-                        onPressed: () {},
+                        onPressed: () => _showActionSnack(
+                          'Compartiendo ${place.name}...',
+                        ),
                       ),
                       const SizedBox(width: 8),
                       _CircleActionButton(
-                        icon: Icons.favorite_border,
-                        onPressed: () {},
+                        icon: _isFavorite ? Icons.favorite : Icons.favorite_border,
+                        onPressed: () => setState(() => _isFavorite = !_isFavorite),
                       ),
                     ],
                   ),
@@ -102,7 +125,9 @@ class PlaceDetailScreen extends StatelessWidget {
                         children: [
                           Expanded(
                             child: OutlinedButton.icon(
-                              onPressed: () {},
+                              onPressed: () => _showActionSnack(
+                                'Abriendo direcciones de ${place.name}...',
+                              ),
                               icon: const Icon(Icons.map_outlined),
                               label: const Text('Direcciones'),
                               style: OutlinedButton.styleFrom(
@@ -122,7 +147,9 @@ class PlaceDetailScreen extends StatelessWidget {
                           const SizedBox(width: 10),
                           Expanded(
                             child: ElevatedButton.icon(
-                              onPressed: () {},
+                              onPressed: () => _showActionSnack(
+                                'Llamando a ${place.name}...',
+                              ),
                               icon: const Icon(Icons.call),
                               label: const Text('Llamar'),
                               style: ElevatedButton.styleFrom(
@@ -157,10 +184,25 @@ class PlaceDetailScreen extends StatelessWidget {
                         height: 400,
                         child: TabBarView(
                           children: [
-                            _HistoryTab(description: place.description),
+                            _TextTab(content: historia),
                             if (showMenu) const _MenuTab(),
-                            const _ScheduleTab(),
+                            _ScheduleTab(horarios: horarios),
                           ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Descripción',
+                        style: textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        descripcion,
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                          height: 1.5,
                         ),
                       ),
                     ],
@@ -191,18 +233,16 @@ class _TopGallery extends StatelessWidget {
           const SizedBox(width: 4),
           Expanded(
             child: Column(
-              children: const [
+              children: [
                 Expanded(
                   child: _GalleryImage(
-                    url:
-                        'https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?auto=format&fit=crop&w=800&q=60',
+                    url: imageUrl,
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Expanded(
                   child: _GalleryImage(
-                    url:
-                        'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=60',
+                    url: imageUrl,
                   ),
                 ),
               ],
@@ -261,10 +301,10 @@ class _CircleActionButton extends StatelessWidget {
   }
 }
 
-class _HistoryTab extends StatelessWidget {
-  final String description;
+class _TextTab extends StatelessWidget {
+  final String content;
 
-  const _HistoryTab({required this.description});
+  const _TextTab({required this.content});
 
   @override
   Widget build(BuildContext context) {
@@ -272,7 +312,7 @@ class _HistoryTab extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     return SingleChildScrollView(
       child: Text(
-        description,
+        content,
         style: textTheme.bodyMedium?.copyWith(
           color: colorScheme.onSurfaceVariant,
           height: 1.5,
@@ -287,44 +327,33 @@ class _MenuTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SingleChildScrollView(
-      child: Column(
-        children: [
-          _MenuItemCard(
-            title: 'Chicharrón Crujiente',
-            price: '\$25,000 COP',
-            description:
-                'Porción tradicional con arepa, papa criolla y ají casero.',
-          ),
-          _MenuItemCard(
-            title: 'Ajiaco Cundinamarqués',
-            price: '\$22,000 COP',
-            description:
-                'Sopa espesa con pollo, papa y guasca, ideal para clima frío.',
-          ),
-          _MenuItemCard(
-            title: 'Chocolate Campesino',
-            price: '\$9,000 COP',
-            description:
-                'Bebida caliente con queso y almojábana recién horneada.',
-          ),
-        ],
+    return SingleChildScrollView(
+      child: Text(
+        'Consulta el menú del establecimiento directamente en el lugar.',
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+          height: 1.5,
+        ),
       ),
     );
   }
 }
 
 class _ScheduleTab extends StatelessWidget {
-  const _ScheduleTab();
+  final String horarios;
+
+  const _ScheduleTab({required this.horarios});
 
   @override
   Widget build(BuildContext context) {
-    return const SingleChildScrollView(child: _HoursCard());
+    return SingleChildScrollView(child: _HoursCard(horarios: horarios));
   }
 }
 
 class _HoursCard extends StatelessWidget {
-  const _HoursCard();
+  final String horarios;
+
+  const _HoursCard({required this.horarios});
 
   @override
   Widget build(BuildContext context) {
@@ -346,96 +375,10 @@ class _HoursCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Lunes - Viernes: 8:00 AM - 6:00 PM',
+            horarios.isEmpty ? 'Horarios no disponibles' : horarios,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
-          ),
-          Text(
-            'Sábado: 9:00 AM - 7:00 PM',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-          ),
-          Text(
-            'Domingo: 9:00 AM - 5:00 PM',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MenuItemCard extends StatelessWidget {
-  final String title;
-  final String price;
-  final String description;
-
-  const _MenuItemCard({
-    required this.title,
-    required this.price,
-    required this.description,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: AppRadii.md,
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: AppRadii.md,
-            child: SizedBox(
-              width: 64,
-              height: 64,
-              child: Image.network(
-                'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=500&q=60',
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) =>
-                    Container(
-                      color: isDark ? const Color(0xFF2D2D2D) : const Color(0xFFDDE2E6),
-                    ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  price,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.primaryTerracotta,
-                        fontWeight: FontWeight.w600,
-                      ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                ),
-              ],
-            ),
           ),
         ],
       ),

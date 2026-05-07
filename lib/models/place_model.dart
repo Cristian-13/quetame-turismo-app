@@ -41,19 +41,25 @@ class PlaceModel {
   final String name;
   final String description;
   final PlaceCategory category;
+  final String rawCategory;
   final String imageUrl;
   final double latitude;
   final double longitude;
   final String? phone;
+  final String? historia;
+  final String? horarios;
 
   const PlaceModel({
     required this.id,
     required this.name,
     required this.description,
     required this.category,
+    this.rawCategory = '',
     required this.imageUrl,
     required this.latitude,
     required this.longitude,
     this.phone,
+    this.historia,
+    this.horarios,
   });
 }
