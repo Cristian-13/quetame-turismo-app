@@ -424,6 +424,9 @@ class _FirestoreSite {
   final String descripcion;
   final String historia;
   final String horarios;
+  final String horaApertura;
+  final String horaCierre;
+  final String telefono;
   final String categoriaRaw;
   final String category;
   final String imagenUrl;
@@ -436,6 +439,9 @@ class _FirestoreSite {
     required this.descripcion,
     required this.historia,
     required this.horarios,
+    required this.horaApertura,
+    required this.horaCierre,
+    required this.telefono,
     required this.categoriaRaw,
     required this.category,
     required this.imagenUrl,
@@ -448,6 +454,10 @@ class _FirestoreSite {
     final descripcion = (data['descripcion'] ?? '').toString().trim();
     final historia = (data['historia'] ?? '').toString().trim();
     final horarios = (data['horarios'] ?? '').toString().trim();
+    final horaApertura = (data['hora_apertura'] ?? '').toString().trim();
+    final horaCierre = (data['hora_cierre'] ?? '').toString().trim();
+    final telefono =
+        (data['telefono'] ?? data['phone'] ?? '').toString().trim();
     final categoriaRaw = (data['categoria'] ?? '').toString();
     final imagenUrl = (data['imagen_url'] ?? '').toString().trim();
     final lat = data['latitud'];
@@ -469,6 +479,9 @@ class _FirestoreSite {
       descripcion: descripcion,
       historia: historia,
       horarios: horarios,
+      horaApertura: horaApertura,
+      horaCierre: horaCierre,
+      telefono: telefono,
       categoriaRaw: categoriaRaw,
       category: _normalizeCategory(categoriaRaw),
       imagenUrl: imagenUrl,
@@ -489,9 +502,11 @@ class _FirestoreSite {
           : imagenUrl,
       latitude: latitud,
       longitude: longitud,
-      phone: null,
+      phone: telefono.isEmpty ? null : telefono,
       historia: historia,
       horarios: horarios,
+      horaApertura: horaApertura.isEmpty ? null : horaApertura,
+      horaCierre: horaCierre.isEmpty ? null : horaCierre,
     );
   }
 }

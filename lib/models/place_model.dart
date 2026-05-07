@@ -48,6 +48,8 @@ class PlaceModel {
   final String? phone;
   final String? historia;
   final String? horarios;
+  final String? horaApertura;
+  final String? horaCierre;
 
   const PlaceModel({
     required this.id,
@@ -61,5 +63,7 @@ class PlaceModel {
     this.phone,
     this.historia,
     this.horarios,
+    this.horaApertura,
+    this.horaCierre,
   });
 }

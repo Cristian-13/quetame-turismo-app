@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:quetame_turismo/models/place_model.dart';
 import 'package:quetame_turismo/theme/app_colors.dart';
 import 'package:quetame_turismo/theme/app_theme.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+const _favoritePlacesKey = 'favorite_place_ids';
 
 class PlaceDetailScreen extends StatefulWidget {
   final PlaceModel place;
@@ -15,18 +20,106 @@ class PlaceDetailScreen extends StatefulWidget {
 class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
   bool _isFavorite = false;
 
+  @override
+  void initState() {
+    super.initState();
+    _loadFavoriteState();
+  }
+
+  Future<void> _loadFavoriteState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final favorites = prefs.getStringList(_favoritePlacesKey) ?? <String>[];
+    if (!mounted) return;
+    setState(() => _isFavorite = favorites.contains(widget.place.id));
+  }
+
+  Future<void> _toggleFavorite() async {
+    final prefs = await SharedPreferences.getInstance();
+    final favorites = prefs.getStringList(_favoritePlacesKey) ?? <String>[];
+    if (_isFavorite) {
+      favorites.remove(widget.place.id);
+    } else if (!favorites.contains(widget.place.id)) {
+      favorites.add(widget.place.id);
+    }
+    await prefs.setStringList(_favoritePlacesKey, favorites);
+    if (!mounted) return;
+    setState(() => _isFavorite = !_isFavorite);
+  }
+
   void _showActionSnack(String message) {
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
+  Future<void> _sharePlace() async {
+    final text =
+        '¡Mira este lugar en Quetame: ${widget.place.name}! Descubre más en la app Quetame Turismo';
+    await SharePlus.instance.share(ShareParams(text: text));
+  }
+
+  Future<void> _callPlace() async {
+    final phone = (widget.place.phone ?? '').trim();
+    if (phone.isEmpty) {
+      _showActionSnack('Este sitio no tiene número telefónico registrado.');
+      return;
+    }
+
+    final uri = Uri(scheme: 'tel', path: phone);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      _showActionSnack('No se pudo abrir el marcador telefónico.');
+    }
+  }
+
+  Future<void> _openDirections() async {
+    final place = widget.place;
+    final mapsUri = Uri.parse(
+      'https://www.google.com/maps/search/?api=1&query=${place.latitude},${place.longitude}',
+    );
+    if (!await launchUrl(mapsUri, mode: LaunchMode.externalApplication)) {
+      _showActionSnack('No se pudo abrir Google Maps.');
+    }
+  }
+
+  _OpenStateData _buildOpenState(PlaceModel place) {
+    final apertura = _toMinutes(place.horaApertura);
+    final cierre = _toMinutes(place.horaCierre);
+    if (apertura == null || cierre == null) {
+      return const _OpenStateData(
+        label: 'Consultar horarios',
+        color: Color(0xFF8A8F99),
+      );
+    }
+
+    final now = DateTime.now();
+    final currentMinutes = (now.hour * 60) + now.minute;
+    final isOpen = apertura <= cierre
+        ? currentMinutes >= apertura && currentMinutes < cierre
+        : currentMinutes >= apertura || currentMinutes < cierre;
+
+    if (isOpen) {
+      return const _OpenStateData(label: 'ABIERTO', color: AppColors.flagGreen);
+    }
+    return const _OpenStateData(label: 'CERRADO', color: Color(0xFFD85C5C));
+  }
+
+  int? _toMinutes(String? value) {
+    final raw = (value ?? '').trim();
+    final parts = raw.split(':');
+    if (parts.length != 2) return null;
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null || minute == null) return null;
+    if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+    return (hour * 60) + minute;
+  }
+
   @override
   Widget build(BuildContext context) {
     final place = widget.place;
     final theme = Theme.of(context);
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
     final isDark = theme.brightness == Brightness.dark;
     final showMenu = place.rawCategory.trim().toLowerCase() == 'restaurante';
     final historia = (place.historia ?? '').trim().isEmpty
@@ -36,8 +129,10 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
         ? 'Descripción no disponible'
         : place.description.trim();
     final horarios = place.horarios?.trim() ?? '';
-    final pageBg = isDark ? const Color(0xFF1E1E1E) : theme.scaffoldBackgroundColor;
+    final pageBg =
+        isDark ? const Color(0xFF1E1E1E) : theme.scaffoldBackgroundColor;
     final sheetBg = isDark ? const Color(0xFF1E1E1E) : colorScheme.surface;
+    final openState = _buildOpenState(place);
 
     return Scaffold(
       backgroundColor: pageBg,
@@ -62,14 +157,16 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
                       const Spacer(),
                       _CircleActionButton(
                         icon: Icons.share_outlined,
-                        onPressed: () => _showActionSnack(
-                          'Compartiendo ${place.name}...',
-                        ),
+                        onPressed: _sharePlace,
+                        iconColor: AppColors.flagGreen,
                       ),
                       const SizedBox(width: 8),
                       _CircleActionButton(
-                        icon: _isFavorite ? Icons.favorite : Icons.favorite_border,
-                        onPressed: () => setState(() => _isFavorite = !_isFavorite),
+                        icon:
+                            _isFavorite ? Icons.favorite : Icons.favorite_border,
+                        onPressed: _toggleFavorite,
+                        iconColor:
+                            _isFavorite ? const Color(0xFFE24D4D) : null,
                       ),
                     ],
                   ),
@@ -90,44 +187,27 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        place.name,
-                        style: textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: colorScheme.onSurface,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
                       Row(
                         children: [
-                          const Spacer(),
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: AppColors.flagGreen,
-                              shape: BoxShape.circle,
+                          Expanded(
+                            child: Text(
+                              place.name,
+                              style: textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: colorScheme.onSurface,
+                              ),
                             ),
                           ),
-                          const SizedBox(width: 6),
-                          const Text(
-                            'Abierto ahora',
-                            style: TextStyle(
-                              color: AppColors.flagGreen,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                          const SizedBox(width: 10),
+                          _OpenStateChip(state: openState),
                         ],
                       ),
-                      const SizedBox(height: 10),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 14),
                       Row(
                         children: [
                           Expanded(
                             child: OutlinedButton.icon(
-                              onPressed: () => _showActionSnack(
-                                'Abriendo direcciones de ${place.name}...',
-                              ),
+                              onPressed: _openDirections,
                               icon: const Icon(Icons.map_outlined),
                               label: const Text('Direcciones'),
                               style: OutlinedButton.styleFrom(
@@ -147,9 +227,7 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
                           const SizedBox(width: 10),
                           Expanded(
                             child: ElevatedButton.icon(
-                              onPressed: () => _showActionSnack(
-                                'Llamando a ${place.name}...',
-                              ),
+                              onPressed: _callPlace,
                               icon: const Icon(Icons.call),
                               label: const Text('Llamar'),
                               style: ElevatedButton.styleFrom(
@@ -195,6 +273,7 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
                         'Descripción',
                         style: textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w700,
+                          color: colorScheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -272,8 +351,13 @@ class _GalleryImage extends StatelessWidget {
 class _CircleActionButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onPressed;
+  final Color? iconColor;
 
-  const _CircleActionButton({required this.icon, required this.onPressed});
+  const _CircleActionButton({
+    required this.icon,
+    required this.onPressed,
+    this.iconColor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -295,7 +379,38 @@ class _CircleActionButton extends StatelessWidget {
       ),
       child: IconButton(
         onPressed: onPressed,
-        icon: Icon(icon, color: theme.colorScheme.onSurface),
+        icon: Icon(icon, color: iconColor ?? theme.colorScheme.onSurface),
+      ),
+    );
+  }
+}
+
+class _OpenStateData {
+  final String label;
+  final Color color;
+
+  const _OpenStateData({required this.label, required this.color});
+}
+
+class _OpenStateChip extends StatelessWidget {
+  final _OpenStateData state;
+
+  const _OpenStateChip({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: state.color.withValues(alpha: 0.16),
+        borderRadius: AppRadii.md,
+      ),
+      child: Text(
+        state.label,
+        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: state.color,
+              fontWeight: FontWeight.w700,
+            ),
       ),
     );
   }

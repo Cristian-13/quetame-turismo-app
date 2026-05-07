@@ -69,8 +69,10 @@ PlaceModel _placeFromFirestore(String docId, Map<String, dynamic> data) {
     imageUrl: (data['imageUrl'] ?? '').toString(),
     latitude: (lat is num) ? lat.toDouble() : double.parse(lat.toString()),
     longitude: (lng is num) ? lng.toDouble() : double.parse(lng.toString()),
-    phone: data['phone']?.toString(),
+    phone: data['phone']?.toString() ?? data['telefono']?.toString(),
     historia: data['historia']?.toString(),
     horarios: data['horarios']?.toString(),
+    horaApertura: data['hora_apertura']?.toString(),
+    horaCierre: data['hora_cierre']?.toString(),
   );
 }
