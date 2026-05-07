@@ -4,6 +4,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
+import 'package:quetame_turismo/features/map/data/osrm_route_service.dart';
 import 'package:quetame_turismo/features/map/presentation/widgets/categories_legend_card.dart';
 import 'package:quetame_turismo/models/place_model.dart';
 import 'package:quetame_turismo/providers/location_provider.dart';
@@ -36,9 +37,50 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   }
 
   void _removeRouteAndResetOverview() {
+    context.read<RouteProvider>().clearActivePlaceRoute();
     _cameraAnim?.dispose();
     _cameraAnim = null;
     _runCameraAnimation(_quetameCenter, _defaultMapZoom);
+  }
+
+  Future<void> _setRouteToSite(_FirestoreSite site) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final locationProvider = context.read<LocationProvider>();
+    final routeProvider = context.read<RouteProvider>();
+
+    await locationProvider.refreshLocationState();
+    final current = locationProvider.currentLocation;
+    if (current == null) {
+      messenger
+        ..clearSnackBars()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Activa tu ubicación para fijar la ruta.'),
+          ),
+        );
+      return;
+    }
+
+    final destination = LatLng(site.latitud, site.longitud);
+    try {
+      final route = await OsrmRouteService.fetchDrivingRoute(
+        origin: current,
+        destination: destination,
+      );
+      final routePoints = route.isEmpty ? <LatLng>[current, destination] : route;
+      routeProvider.setActivePlaceRoute(routePoints);
+      _animateCameraToInclude(routePoints);
+    } catch (_) {
+      routeProvider.setActivePlaceRoute(<LatLng>[current, destination]);
+      _animateCameraToInclude(<LatLng>[current, destination]);
+      messenger
+        ..clearSnackBars()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('No se pudo calcular la ruta exacta. Se mostró una línea base.'),
+          ),
+        );
+    }
   }
 
   void _animateCameraToInclude(List<LatLng> points) {
@@ -183,10 +225,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                       child: OutlinedButton.icon(
                         onPressed: () {
                           Navigator.pop(context);
-                          _runCameraAnimation(
-                            LatLng(site.latitud, site.longitud),
-                            16.0,
-                          );
+                          _setRouteToSite(site);
                         },
                         icon: const Icon(Icons.directions),
                         label: const Text('Fijar Ruta'),
@@ -427,6 +466,7 @@ class _FirestoreSite {
   final String horaApertura;
   final String horaCierre;
   final String telefono;
+  final String menuUrl;
   final String categoriaRaw;
   final String category;
   final String imagenUrl;
@@ -442,6 +482,7 @@ class _FirestoreSite {
     required this.horaApertura,
     required this.horaCierre,
     required this.telefono,
+    required this.menuUrl,
     required this.categoriaRaw,
     required this.category,
     required this.imagenUrl,
@@ -458,6 +499,7 @@ class _FirestoreSite {
     final horaCierre = (data['hora_cierre'] ?? '').toString().trim();
     final telefono =
         (data['telefono'] ?? data['phone'] ?? '').toString().trim();
+    final menuUrl = (data['menu_url'] ?? '').toString().trim();
     final categoriaRaw = (data['categoria'] ?? '').toString();
     final imagenUrl = (data['imagen_url'] ?? '').toString().trim();
     final lat = data['latitud'];
@@ -482,6 +524,7 @@ class _FirestoreSite {
       horaApertura: horaApertura,
       horaCierre: horaCierre,
       telefono: telefono,
+      menuUrl: menuUrl,
       categoriaRaw: categoriaRaw,
       category: _normalizeCategory(categoriaRaw),
       imagenUrl: imagenUrl,
@@ -507,6 +550,7 @@ class _FirestoreSite {
       horarios: horarios,
       horaApertura: horaApertura.isEmpty ? null : horaApertura,
       horaCierre: horaCierre.isEmpty ? null : horaCierre,
+      menuUrl: menuUrl.isEmpty ? null : menuUrl,
     );
   }
 }

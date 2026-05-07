@@ -18,6 +18,7 @@ class RouteProvider extends ChangeNotifier {
   String? _geoRoutesError;
   final List<List<LatLng>> _geoRoutes = [];
   final Map<String, List<LatLng>> _geoRouteById = <String, List<LatLng>>{};
+  List<LatLng> _activePlaceRoute = const <LatLng>[];
 
   bool _isRoutesTabActive = false;
   String? _selectedRouteIdForMap;
@@ -38,6 +39,9 @@ class RouteProvider extends ChangeNotifier {
   /// - Por defecto: ocultas.
   /// - Se muestran si el usuario está en la pestaña de Rutas o si hay una ruta seleccionada.
   List<List<LatLng>> get visibleGeoRoutesOnMainMap {
+    if (_activePlaceRoute.isNotEmpty) {
+      return [_activePlaceRoute];
+    }
     final selected = selectedRouteForMap;
     if (selected != null && selected.pathPoints.isNotEmpty) {
       return [selected.pathPoints];
@@ -46,6 +50,17 @@ class RouteProvider extends ChangeNotifier {
       return geoRoutes;
     }
     return const [];
+  }
+
+  void setActivePlaceRoute(List<LatLng> points) {
+    _activePlaceRoute = List<LatLng>.unmodifiable(points);
+    notifyListeners();
+  }
+
+  void clearActivePlaceRoute() {
+    if (_activePlaceRoute.isEmpty) return;
+    _activePlaceRoute = const <LatLng>[];
+    notifyListeners();
   }
 
   void setRoutesTabActive(bool active) {

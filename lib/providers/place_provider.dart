@@ -74,5 +74,6 @@ PlaceModel _placeFromFirestore(String docId, Map<String, dynamic> data) {
     horarios: data['horarios']?.toString(),
     horaApertura: data['hora_apertura']?.toString(),
     horaCierre: data['hora_cierre']?.toString(),
+    menuUrl: data['menu_url']?.toString(),
   );
 }

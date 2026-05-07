@@ -81,6 +81,19 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
     }
   }
 
+  Future<void> _openMenuUrl() async {
+    final menuUrl = (widget.place.menuUrl ?? '').trim();
+    if (menuUrl.isEmpty) return;
+    final uri = Uri.tryParse(menuUrl);
+    if (uri == null) {
+      _showActionSnack('El enlace del menú no es válido.');
+      return;
+    }
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      _showActionSnack('No se pudo abrir el menú en el navegador.');
+    }
+  }
+
   _OpenStateData _buildOpenState(PlaceModel place) {
     final apertura = _toMinutes(place.horaApertura);
     final cierre = _toMinutes(place.horaCierre);
@@ -122,6 +135,7 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
     final textTheme = theme.textTheme;
     final isDark = theme.brightness == Brightness.dark;
     final showMenu = place.rawCategory.trim().toLowerCase() == 'restaurante';
+    final hasMenuUrl = (place.menuUrl ?? '').trim().isNotEmpty;
     final historia = (place.historia ?? '').trim().isEmpty
         ? 'Historia no disponible'
         : place.historia!.trim();
@@ -244,6 +258,25 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
                           ),
                         ],
                       ),
+                      if (hasMenuUrl) ...[
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _openMenuUrl,
+                            icon: const Icon(Icons.restaurant_menu),
+                            label: const Text('Ver Menú'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.flagGreen,
+                              foregroundColor: Colors.white,
+                              shape: const RoundedRectangleBorder(
+                                borderRadius: AppRadii.md,
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 16),
                       TabBar(
                         isScrollable: false,

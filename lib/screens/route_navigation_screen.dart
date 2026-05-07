@@ -165,66 +165,68 @@ class _RouteNavigationScreenState extends State<RouteNavigationScreen> {
                   borderRadius: AppRadii.topSheet,
                   boxShadow: AppShadows.soft,
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.headphones,
-                          color: AppColors.flagGreen,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Audio Guias Listadas: 4',
-                          style: AppTextStyles.bodyMuted.copyWith(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.headphones,
                             color: AppColors.flagGreen,
-                            fontWeight: FontWeight.w700,
+                            size: 18,
                           ),
-                        ),
-                        const Spacer(),
-                        Text(
-                          '2.5 km de 8.5 km',
-                          style: AppTextStyles.bodyMuted.copyWith(
-                            color: scheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
+                          const SizedBox(width: 6),
+                          Text(
+                            'Audio Guias Listadas: 4',
+                            style: AppTextStyles.bodyMuted.copyWith(
+                              color: AppColors.flagGreen,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    LinearProgressIndicator(
-                      value: 2.5 / 8.5,
-                      minHeight: 8,
-                      backgroundColor: scheme.surfaceContainerHighest,
-                      valueColor: const AlwaysStoppedAnimation(AppColors.flagGreen),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          setState(() {
-                            _showAudioPlayer = !_showAudioPlayer;
-                          });
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.flagGreen,
-                          foregroundColor: Colors.white,
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: AppRadii.md,
+                          const Spacer(),
+                          Text(
+                            '2.5 km de 8.5 km',
+                            style: AppTextStyles.bodyMuted.copyWith(
+                              color: scheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                        child: Text(
-                          _showAudioPlayer
-                              ? 'Ocultar Reproductor'
-                              : 'Ver Detalles de Audio Guias',
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      LinearProgressIndicator(
+                        value: 2.5 / 8.5,
+                        minHeight: 8,
+                        backgroundColor: scheme.surfaceContainerHighest,
+                        valueColor: const AlwaysStoppedAnimation(AppColors.flagGreen),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              _showAudioPlayer = !_showAudioPlayer;
+                            });
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.flagGreen,
+                            foregroundColor: Colors.white,
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: AppRadii.md,
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          child: Text(
+                            _showAudioPlayer
+                                ? 'Ocultar Reproductor'
+                                : 'Ver Detalles de Audio Guias',
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

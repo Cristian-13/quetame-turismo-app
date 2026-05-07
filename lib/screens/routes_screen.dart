@@ -249,122 +249,124 @@ class RouteCard extends StatelessWidget {
                   flex: compact ? 5 : 6,
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          route.title,
-                          style: textTheme.titleLarge?.copyWith(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            color: colorScheme.onSurface,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            route.title,
+                            style: textTheme.titleLarge?.copyWith(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: colorScheme.onSurface,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          route.description,
-                          style: textTheme.bodyMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                            fontSize: 13.5,
+                          const SizedBox(height: 6),
+                          Text(
+                            route.description,
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                              fontSize: 13.5,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 12,
-                          runSpacing: 6,
-                          children: [
-                            _StatItem(
-                              icon: Icons.schedule_outlined,
-                              value: route.duration,
-                            ),
-                            _StatItem(
-                              icon: Icons.terrain_outlined,
-                              value: route.difficulty,
-                            ),
-                            _StatItem(
-                              icon: Icons.place_outlined,
-                              value: route.distance,
-                            ),
-                          ],
-                        ),
-                        const Spacer(),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: isDownloading
-                                    ? null
-                                    : (downloaded
-                                        ? onRemoveDownloadPressed
-                                        : onDownloadPressed),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: downloaded
-                                      ? Colors.redAccent
-                                      : downloadActionColor,
-                                  side: BorderSide(
-                                    color: downloaded
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 12,
+                            runSpacing: 6,
+                            children: [
+                              _StatItem(
+                                icon: Icons.schedule_outlined,
+                                value: route.duration,
+                              ),
+                              _StatItem(
+                                icon: Icons.terrain_outlined,
+                                value: route.difficulty,
+                              ),
+                              _StatItem(
+                                icon: Icons.place_outlined,
+                                value: route.distance,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: isDownloading
+                                      ? null
+                                      : (downloaded
+                                          ? onRemoveDownloadPressed
+                                          : onDownloadPressed),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: downloaded
                                         ? Colors.redAccent
-                                        : outlineColor,
-                                  ),
-                                  padding: const EdgeInsets.symmetric(vertical: 11),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    if (isDownloading)
-                                      const SizedBox(
-                                        width: 16,
-                                        height: 16,
-                                        child: CircularProgressIndicator(strokeWidth: 2),
-                                      )
-                                    else
-                                      Icon(
-                                        downloaded
-                                            ? Icons.delete_outline_rounded
-                                            : Icons.download_for_offline_outlined,
-                                        size: 18,
-                                        color: downloaded
-                                            ? Colors.redAccent
-                                            : null,
-                                      ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      downloaded
-                                          ? 'Eliminar descarga'
-                                          : (isDownloading
-                                              ? 'Descargando...'
-                                              : 'Descargar'),
+                                        : downloadActionColor,
+                                    side: BorderSide(
+                                      color: downloaded
+                                          ? Colors.redAccent
+                                          : outlineColor,
                                     ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: onStartRoutePressed,
-                                icon: const Icon(Icons.near_me_rounded),
-                                label: const Text('Iniciar ruta'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.flagGreen,
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    padding: const EdgeInsets.symmetric(vertical: 11),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
                                   ),
-                                  padding: const EdgeInsets.symmetric(vertical: 11),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      if (isDownloading)
+                                        const SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(strokeWidth: 2),
+                                        )
+                                      else
+                                        Icon(
+                                          downloaded
+                                              ? Icons.delete_outline_rounded
+                                              : Icons.download_for_offline_outlined,
+                                          size: 18,
+                                          color: downloaded
+                                              ? Colors.redAccent
+                                              : null,
+                                        ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        downloaded
+                                            ? 'Eliminar descarga'
+                                            : (isDownloading
+                                                ? 'Descargando...'
+                                                : 'Descargar'),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: onStartRoutePressed,
+                                  icon: const Icon(Icons.near_me_rounded),
+                                  label: const Text('Iniciar ruta'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.flagGreen,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(vertical: 11),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

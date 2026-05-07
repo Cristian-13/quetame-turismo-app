@@ -50,6 +50,7 @@ class PlaceModel {
   final String? horarios;
   final String? horaApertura;
   final String? horaCierre;
+  final String? menuUrl;
 
   const PlaceModel({
     required this.id,
@@ -65,5 +66,6 @@ class PlaceModel {
     this.horarios,
     this.horaApertura,
     this.horaCierre,
+    this.menuUrl,
   });
 }
