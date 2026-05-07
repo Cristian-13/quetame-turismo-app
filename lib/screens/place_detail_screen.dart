@@ -89,9 +89,26 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
       _showActionSnack('El enlace del menú no es válido.');
       return;
     }
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+    final isImage = _isImageUrl(menuUrl);
+    final launched = await launchUrl(
+      uri,
+      mode: LaunchMode.externalApplication,
+    );
+    if (!launched) {
       _showActionSnack('No se pudo abrir el menú en el navegador.');
+      return;
     }
+    if (isImage) {
+      _showActionSnack('Abriendo imagen del menú...');
+    }
+  }
+
+  bool _isImageUrl(String url) {
+    final lower = url.toLowerCase().split('?').first;
+    return lower.endsWith('.jpg') ||
+        lower.endsWith('.jpeg') ||
+        lower.endsWith('.png') ||
+        lower.endsWith('.webp');
   }
 
   _OpenStateData _buildOpenState(PlaceModel place) {
@@ -139,9 +156,6 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
     final historia = (place.historia ?? '').trim().isEmpty
         ? 'Historia no disponible'
         : place.historia!.trim();
-    final descripcion = place.description.trim().isEmpty
-        ? 'Descripción no disponible'
-        : place.description.trim();
     final horarios = place.horarios?.trim() ?? '';
     final pageBg =
         isDark ? const Color(0xFF1E1E1E) : theme.scaffoldBackgroundColor;
@@ -299,22 +313,6 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
                             if (showMenu) const _MenuTab(),
                             _ScheduleTab(horarios: horarios),
                           ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Descripción',
-                        style: textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: colorScheme.onSurface,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        descripcion,
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                          height: 1.5,
                         ),
                       ),
                     ],

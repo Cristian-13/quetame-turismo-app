@@ -36,11 +36,14 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  void _removeRouteAndResetOverview() {
-    context.read<RouteProvider>().clearActivePlaceRoute();
+  void _centerTown() {
     _cameraAnim?.dispose();
     _cameraAnim = null;
     _runCameraAnimation(_quetameCenter, _defaultMapZoom);
+  }
+
+  void _removeActiveRoute() {
+    context.read<RouteProvider>().clearActivePlaceRoute();
   }
 
   Future<void> _setRouteToSite(_FirestoreSite site) async {
@@ -321,7 +324,9 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
     final locationProvider = context.watch<LocationProvider>();
     final userLocation = locationProvider.currentLocation;
-    final geoRoutes = context.watch<RouteProvider>().visibleGeoRoutesOnMainMap;
+    final routeProvider = context.watch<RouteProvider>();
+    final geoRoutes = routeProvider.visibleGeoRoutesOnMainMap;
+    final hasActivePlaceRoute = routeProvider.hasActivePlaceRoute;
 
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: FirebaseFirestore.instance.collection('sitios').snapshots(),
@@ -436,12 +441,21 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               FloatingActionButton.small(
-                heroTag: 'map_reset_view',
-                onPressed: _removeRouteAndResetOverview,
-                tooltip: 'Restablecer vista',
-                child: const Icon(Icons.center_focus_strong_rounded),
+                heroTag: 'map_center_town',
+                onPressed: _centerTown,
+                tooltip: 'Centrar Pueblo',
+                child: const Icon(Icons.location_city),
               ),
               const SizedBox(height: 12),
+              if (hasActivePlaceRoute) ...[
+                FloatingActionButton.small(
+                  heroTag: 'map_clear_route',
+                  onPressed: _removeActiveRoute,
+                  tooltip: 'Eliminar ruta',
+                  child: const Icon(Icons.alt_route),
+                ),
+                const SizedBox(height: 12),
+              ],
               FloatingActionButton(
                 heroTag: 'map_my_location',
                 onPressed: _handleMyLocationPressed,

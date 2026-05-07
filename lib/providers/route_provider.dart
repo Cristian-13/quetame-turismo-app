@@ -63,6 +63,8 @@ class RouteProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool get hasActivePlaceRoute => _activePlaceRoute.isNotEmpty;
+
   void setRoutesTabActive(bool active) {
     if (_isRoutesTabActive == active) return;
     _isRoutesTabActive = active;
