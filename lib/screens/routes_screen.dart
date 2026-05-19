@@ -176,77 +176,67 @@ class RouteCard extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
-    final isDark = theme.brightness == Brightness.dark;
     final downloadActionColor = downloaded
-        ? AppColors.flagGreen
-        : (isDark ? Colors.white : const Color(0xFF2F3A40));
+        ? AppColors.goldPrimary
+        : colorScheme.onSurface;
     final outlineColor = colorScheme.outlineVariant;
+
+    final isDark = theme.brightness == Brightness.dark;
+    final cardBorder = BorderSide(
+      color: isDark ? AppColors.borderDark : AppColors.borderLight,
+      width: 1,
+    );
 
     return Card(
       margin: EdgeInsets.zero,
-      elevation: 4,
-      shadowColor: Colors.black12,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+      elevation: theme.cardTheme.elevation ?? 4,
+      shadowColor: theme.cardTheme.shadowColor,
+      color: theme.cardTheme.color,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+        side: cardBorder,
+      ),
       clipBehavior: Clip.antiAlias,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final compact = constraints.maxHeight < 360;
-          return Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  colorScheme.surface,
-                  colorScheme.surfaceContainerHighest,
-                ],
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: compact ? 3 : 4,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: route.id == 'r1'
-                                ? const [Color(0xFF7EA18B), Color(0xFF4D6C57)]
-                                : const [Color(0xFF7A8EA5), Color(0xFF516476)],
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: compact ? 3 : 4,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    _RouteCoverImage(route: route),
+                    Positioned(
+                      top: 10,
+                      left: 10,
+                      child: _StatusChip(downloaded: downloaded),
+                    ),
+                    Positioned(
+                      top: 10,
+                      right: 10,
+                      child: Chip(
+                        label: Text(
+                          route.difficulty,
+                          style: TextStyle(
+                            color: route.difficultyTextColor,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
                           ),
                         ),
+                        backgroundColor: route.difficultyColor,
+                        visualDensity: VisualDensity.compact,
                       ),
-                      Positioned(
-                        top: 10,
-                        left: 10,
-                        child: _StatusChip(downloaded: downloaded),
-                      ),
-                      Positioned(
-                        top: 10,
-                        right: 10,
-                        child: Chip(
-                          label: Text(
-                            route.difficulty,
-                            style: TextStyle(
-                              color: route.difficultyTextColor,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                            ),
-                          ),
-                          backgroundColor: route.difficultyColor,
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                Expanded(
-                  flex: compact ? 5 : 6,
+              ),
+              Expanded(
+                flex: compact ? 5 : 6,
+                child: Container(
+                  color: theme.cardTheme.color ?? AppColors.cardSurface,
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
                     child: SingleChildScrollView(
@@ -354,7 +344,7 @@ class RouteCard extends StatelessWidget {
                                   icon: const Icon(Icons.near_me_rounded),
                                   label: const Text('Iniciar ruta'),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.flagGreen,
+                                    backgroundColor: AppColors.goldPrimary,
                                     foregroundColor: Colors.white,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
@@ -370,11 +360,103 @@ class RouteCard extends StatelessWidget {
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           );
         },
       ),
+    );
+  }
+}
+
+/// Imagen de portada por ruta (red) con placeholder esmeralda + spinner.
+class _RouteCoverImage extends StatelessWidget {
+  const _RouteCoverImage({required this.route});
+
+  final TrailRoute route;
+
+  static const String _laTorreUrl =
+      'https://i.postimg.cc/hP7m0zhF/3a6d20af-5c24-40b5-b96f-14b0399a7781-1.jpg';
+  static const String _paramoUrl =
+      'https://i.postimg.cc/7ZGK0Zry/63c11546-418f-4241-a152-910aaab0ff44-1.jpg';
+
+  static String? imageUrlFor(TrailRoute route) {
+    switch (route.id) {
+      case 'la_torre':
+      case 'r1':
+        return _laTorreUrl;
+      case 'paramo_burras':
+      case 'r2':
+        return _paramoUrl;
+    }
+    final title = route.title.toLowerCase();
+    if (title.contains('torre')) return _laTorreUrl;
+    if (title.contains('páramo') ||
+        title.contains('paramo') ||
+        title.contains('burras')) {
+      return _paramoUrl;
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final imageUrl = imageUrlFor(route);
+
+    if (imageUrl == null) {
+      return const ColoredBox(color: AppColors.goldPrimary);
+    }
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const ColoredBox(color: AppColors.goldPrimary),
+        Image.network(
+          imageUrl,
+          fit: BoxFit.cover,
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return ColoredBox(
+              color: AppColors.goldPrimary,
+              child: Center(
+                child: CircularProgressIndicator(
+                  value: loadingProgress.expectedTotalBytes != null
+                      ? loadingProgress.cumulativeBytesLoaded /
+                          loadingProgress.expectedTotalBytes!
+                      : null,
+                  color: Colors.white,
+                  strokeWidth: 2.5,
+                ),
+              ),
+            );
+          },
+          errorBuilder: (context, error, stackTrace) {
+            return const ColoredBox(
+              color: AppColors.goldPrimary,
+              child: Center(
+                child: Icon(
+                  Icons.landscape_outlined,
+                  color: Colors.white70,
+                  size: 48,
+                ),
+              ),
+            );
+          },
+        ),
+        // Degradado inferior para legibilidad de chips
+        const DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.transparent,
+                Color(0x66000000),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -387,7 +469,8 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final Color bgColor = downloaded ? AppColors.flagGreen : scheme.onSurfaceVariant;
+    final Color bgColor =
+        downloaded ? AppColors.goldPrimary : scheme.onSurfaceVariant;
     return Chip(
       avatar: Icon(
         downloaded ? Icons.check_circle : Icons.download_outlined,

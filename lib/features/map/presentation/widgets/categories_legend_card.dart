@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:quetame_turismo/theme/app_colors.dart';
+import 'package:quetame_turismo/models/place_model.dart';
+import 'package:quetame_turismo/theme/app_theme_extension.dart';
 
 /// Leyenda de categorías del mapa: cada ítem es seleccionable y filtra marcadores.
 class CategoriesLegendCard extends StatelessWidget {
-  final bool isDarkMode;
   final String selectedCategory;
   final ValueChanged<String> onCategorySelected;
 
   const CategoriesLegendCard({
     super.key,
-    required this.isDarkMode,
     required this.selectedCategory,
     required this.onCategorySelected,
   });
@@ -22,29 +21,14 @@ class CategoriesLegendCard extends StatelessWidget {
     'Gastronomía',
   ];
 
-  /// Color del punto en leyenda (alineado con [PlaceCategory] y marcadores demo).
-  static Color dotColorForLabel(String label) {
-    switch (label) {
-      case 'Historia':
-        return const Color(0xFF8A4B22);
-      case 'Naturaleza':
-        return AppColors.flagGreen;
-      case 'Mirador':
-        return const Color(0xFF4D74D9);
-      case 'Gastronomía':
-        return const Color(0xFFF15A4A);
-      default:
-        return AppColors.flagGreen;
-    }
-  }
+  /// Color del punto en leyenda (alineado con [PlaceCategory] y marcadores).
+  static Color dotColorForLabel(String label) =>
+      PlaceCategory.pinColorForLabel(label);
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       height: 44,
-      decoration: BoxDecoration(
-        color: Colors.transparent,
-      ),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -55,7 +39,6 @@ class CategoriesLegendCard extends StatelessWidget {
           return _CategoryChip(
             label: label,
             selected: selectedCategory == label,
-            isDarkMode: isDarkMode,
             onTap: () => onCategorySelected(label),
           );
         },
@@ -74,13 +57,11 @@ class _CategoryData {
 class _CategoryChip extends StatelessWidget {
   final String label;
   final bool selected;
-  final bool isDarkMode;
   final VoidCallback onTap;
 
   const _CategoryChip({
     required this.label,
     required this.selected,
-    required this.isDarkMode,
     required this.onTap,
   });
 
@@ -101,17 +82,14 @@ class _CategoryChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color selectedBackground = AppColors.flagGreen;
-    final Color unselectedBackground = isDarkMode
-        ? const Color(0xFF2A2F33)
-        : Colors.white;
-    final Color unselectedBorder = isDarkMode
-        ? const Color(0xFF46505A)
-        : const Color(0xFFD6DDE3);
-    final Color unselectedForeground = isDarkMode
-        ? const Color(0xFFE8EDF2)
-        : const Color(0xFF37424A);
+    final scheme = Theme.of(context).colorScheme;
+    final extras = Theme.of(context).extension<QuetameThemeColors>()!;
     final icon = _iconForLabel(label);
+
+    final Color selectedBackground = scheme.primary;
+    final Color unselectedBackground = extras.elevatedSurface;
+    final Color unselectedBorder = extras.elevatedBorder;
+    final Color unselectedForeground = scheme.onSurface;
 
     return Material(
       color: Colors.transparent,
@@ -129,6 +107,15 @@ class _CategoryChip extends StatelessWidget {
               color: selected ? selectedBackground : unselectedBorder,
               width: 1,
             ),
+            boxShadow: selected
+                ? null
+                : const [
+                    BoxShadow(
+                      color: Color(0x0DA67C00),
+                      blurRadius: 4,
+                      offset: Offset(0, 1),
+                    ),
+                  ],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -141,11 +128,11 @@ class _CategoryChip extends StatelessWidget {
               const SizedBox(width: 6),
               Text(
                 label,
-                style: TextStyle(
-                  color: selected ? Colors.white : unselectedForeground,
-                  fontSize: 12,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-                ),
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: selected ? Colors.white : unselectedForeground,
+                      fontWeight:
+                          selected ? FontWeight.w700 : FontWeight.w600,
+                    ),
               ),
             ],
           ),

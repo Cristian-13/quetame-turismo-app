@@ -64,7 +64,7 @@ class _RouteNavigationScreenState extends State<RouteNavigationScreen> {
                     Polyline(
                       points: routePoints,
                       strokeWidth: 5,
-                      color: AppColors.flagGreen,
+                      color: AppColors.goldPrimary,
                     ),
                   ],
                 ),
@@ -126,7 +126,7 @@ class _RouteNavigationScreenState extends State<RouteNavigationScreen> {
                         child: Text(
                           'Navegando: ${widget.route.title}',
                           style: AppTextStyles.bodyMuted.copyWith(
-                            color: AppColors.flagGreen,
+                            color: AppColors.goldPrimary,
                             fontWeight: FontWeight.w700,
                           ),
                           overflow: TextOverflow.ellipsis,
@@ -176,14 +176,14 @@ class _RouteNavigationScreenState extends State<RouteNavigationScreen> {
                           children: [
                             const Icon(
                               Icons.headphones,
-                              color: AppColors.flagGreen,
+                              color: AppColors.goldPrimary,
                               size: 18,
                             ),
                             const SizedBox(width: 6),
                             Text(
                               'Audio Guias Listadas: 4',
                               style: AppTextStyles.bodyMuted.copyWith(
-                                color: AppColors.flagGreen,
+                                color: AppColors.goldPrimary,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -202,7 +202,7 @@ class _RouteNavigationScreenState extends State<RouteNavigationScreen> {
                           value: 2.5 / 8.5,
                           minHeight: 8,
                           backgroundColor: scheme.surfaceContainerHighest,
-                          valueColor: const AlwaysStoppedAnimation(AppColors.flagGreen),
+                          valueColor: const AlwaysStoppedAnimation(AppColors.goldPrimary),
                         ),
                         const SizedBox(height: 12),
                         SizedBox(
@@ -214,7 +214,7 @@ class _RouteNavigationScreenState extends State<RouteNavigationScreen> {
                               });
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.flagGreen,
+                              backgroundColor: AppColors.goldPrimary,
                               foregroundColor: Colors.white,
                               shape: const RoundedRectangleBorder(
                                 borderRadius: AppRadii.md,
@@ -250,7 +250,7 @@ class _GuideMarker extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: Color(0xFF2F3942),
+        color: AppColors.goldDeep,
         shape: BoxShape.circle,
         boxShadow: AppShadows.soft,
       ),

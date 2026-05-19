@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:quetame_turismo/features/map/presentation/widgets/categories_legend_card.dart';
 import 'package:quetame_turismo/features/map/presentation/widgets/map_header.dart';
 import 'package:quetame_turismo/models/map_marker.dart';
+import 'package:quetame_turismo/models/place_model.dart';
 import 'package:quetame_turismo/providers/theme_provider.dart';
 
 class MainMapScreen extends StatefulWidget {
@@ -23,30 +24,30 @@ class _MainMapScreenState extends State<MainMapScreen> with TickerProviderStateM
   static const LatLng _quetameCenter = LatLng(4.3316, -73.8653);
   static const double _defaultZoom = 14.0;
 
-  static const List<MapMarker> _markers = [
+  static final List<MapMarker> _markers = [
     MapMarker(
       id: 'm1',
-      position: LatLng(4.3330, -73.8667),
+      position: const LatLng(4.3330, -73.8667),
       category: 'Historia',
-      color: Color(0xFF8A4B22),
+      color: PlaceCategory.historia.color,
     ),
     MapMarker(
       id: 'm2',
-      position: LatLng(4.3327, -73.8633),
+      position: const LatLng(4.3327, -73.8633),
       category: 'Mirador',
-      color: Color(0xFF4D74D9),
+      color: PlaceCategory.mirador.color,
     ),
     MapMarker(
       id: 'm3',
-      position: LatLng(4.3302, -73.8650),
+      position: const LatLng(4.3302, -73.8650),
       category: 'Naturaleza',
-      color: Color(0xFF3FA63A),
+      color: PlaceCategory.naturaleza.color,
     ),
     MapMarker(
       id: 'm4',
-      position: LatLng(4.3298, -73.8618),
+      position: const LatLng(4.3298, -73.8618),
       category: 'Gastronomía',
-      color: Color(0xFFF15A4A),
+      color: PlaceCategory.gastronomia.color,
     ),
   ];
 
@@ -123,8 +124,6 @@ class _MainMapScreenState extends State<MainMapScreen> with TickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = context.watch<ThemeProvider>();
-    final isDarkMode = themeProvider.isDarkMode;
 
     return Scaffold(
       body: Stack(
@@ -147,7 +146,10 @@ class _MainMapScreenState extends State<MainMapScreen> with TickerProviderStateM
                         width: 36,
                         height: 36,
                         point: marker.position,
-                        child: _MapPin(color: marker.color),
+                        child: _MapPin(
+                          color: marker.color,
+                          category: marker.category,
+                        ),
                       ),
                     )
                     .toList(),
@@ -157,7 +159,6 @@ class _MainMapScreenState extends State<MainMapScreen> with TickerProviderStateM
           Align(
             alignment: Alignment.topCenter,
             child: MapHeader(
-              isDarkMode: isDarkMode,
               onToggleTheme: () => context.read<ThemeProvider>().toggleTheme(),
             ),
           ),
@@ -165,7 +166,6 @@ class _MainMapScreenState extends State<MainMapScreen> with TickerProviderStateM
             left: 16,
             bottom: 100,
             child: CategoriesLegendCard(
-              isDarkMode: isDarkMode,
               selectedCategory: _selectedCategory,
               onCategorySelected: _onCategorySelected,
             ),
@@ -203,27 +203,51 @@ class _MainMapScreenState extends State<MainMapScreen> with TickerProviderStateM
 
 class _MapPin extends StatelessWidget {
   final Color color;
+  final String category;
 
-  const _MapPin({required this.color});
+  const _MapPin({required this.color, required this.category});
+
+  IconData _iconFromLabel(String label) {
+    switch (label) {
+      case 'Historia':
+        return Icons.account_balance;
+      case 'Mirador':
+        return Icons.visibility;
+      case 'Gastronomía':
+        return Icons.restaurant;
+      case 'Naturaleza':
+        return Icons.terrain;
+      default:
+        return Icons.place;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: 36,
+      height: 36,
       decoration: BoxDecoration(
         color: color,
         shape: BoxShape.circle,
-        boxShadow: const [
+        border: Border.all(color: Colors.white, width: 2.5),
+        boxShadow: [
           BoxShadow(
-            color: Colors.black26,
+            color: color.withValues(alpha: 0.45),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+          const BoxShadow(
+            color: Color(0x26000000),
             blurRadius: 4,
-            offset: Offset(0, 2),
+            offset: Offset(0, 1),
           ),
         ],
       ),
-      child: const Icon(
-        Icons.place,
+      child: Icon(
+        _iconFromLabel(category),
         color: Colors.white,
-        size: 20,
+        size: 18,
       ),
     );
   }

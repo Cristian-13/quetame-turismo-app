@@ -19,9 +19,9 @@ extension EventCategoryX on EventCategory {
   Color get color {
     switch (this) {
       case EventCategory.cultural:
-        return AppColors.primaryTerracotta;
+        return AppColors.bronze;
       case EventCategory.naturaleza:
-        return AppColors.flagGreen;
+        return AppColors.goldPrimary;
     }
   }
 }

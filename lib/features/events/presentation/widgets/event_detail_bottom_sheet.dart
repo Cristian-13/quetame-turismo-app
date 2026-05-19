@@ -2,6 +2,7 @@ import 'package:add_2_calendar/add_2_calendar.dart' as a2c;
 import 'package:flutter/material.dart';
 import 'package:quetame_turismo/models/event_model.dart';
 import 'package:quetame_turismo/theme/app_theme.dart';
+import 'package:quetame_turismo/theme/app_theme_extension.dart';
 
 /// Modal inferior con detalle completo del evento y acción de calendario.
 class EventDetailBottomSheet extends StatelessWidget {
@@ -98,6 +99,7 @@ class EventDetailBottomSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final extras = theme.extension<QuetameThemeColors>()!;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return DraggableScrollableSheet(
@@ -108,8 +110,9 @@ class EventDetailBottomSheet extends StatelessWidget {
       builder: (context, scrollController) {
         return Container(
           decoration: BoxDecoration(
-            color: scheme.surface,
+            color: extras.elevatedSurface,
             borderRadius: AppRadii.topSheet,
+            border: Border.all(color: extras.elevatedBorder, width: 1),
             boxShadow: AppShadows.soft,
           ),
           child: Column(

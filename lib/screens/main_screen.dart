@@ -19,14 +19,11 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = context.watch<ThemeProvider>();
-    final isDarkMode = themeProvider.isDarkMode;
-
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
           MapHeader(
-            isDarkMode: isDarkMode,
             onToggleTheme: () => context.read<ThemeProvider>().toggleTheme(),
           ),
           Expanded(

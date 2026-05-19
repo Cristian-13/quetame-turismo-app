@@ -9,7 +9,6 @@ import 'package:quetame_turismo/features/map/presentation/widgets/categories_leg
 import 'package:quetame_turismo/models/place_model.dart';
 import 'package:quetame_turismo/providers/location_provider.dart';
 import 'package:quetame_turismo/providers/route_provider.dart';
-import 'package:quetame_turismo/providers/theme_provider.dart';
 import 'package:quetame_turismo/screens/place_detail_screen.dart';
 import 'package:quetame_turismo/theme/app_colors.dart';
 
@@ -193,7 +192,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                           child: const CircularProgressIndicator(strokeWidth: 2.2),
                         );
                       },
-                      errorBuilder: (_, __, ___) => Container(
+                      errorBuilder: (_, _, _) => Container(
                         color: scheme.surfaceContainerHighest,
                         alignment: Alignment.center,
                         child: Icon(
@@ -240,7 +239,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                         onPressed: () {
                           Navigator.pop(context);
                           Navigator.push(
-                            this.context,
+                            context,
                             MaterialPageRoute(
                               builder: (_) => PlaceDetailScreen(
                                 place: site.toPlaceModel(),
@@ -249,7 +248,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                           );
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.flagGreen,
+                          backgroundColor: AppColors.goldPrimary,
                           foregroundColor: Colors.white,
                         ),
                         icon: const Icon(Icons.open_in_new_rounded),
@@ -321,7 +320,6 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = context.watch<ThemeProvider>().isDarkMode;
     final locationProvider = context.watch<LocationProvider>();
     final userLocation = locationProvider.currentLocation;
     final routeProvider = context.watch<RouteProvider>();
@@ -363,7 +361,8 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
               child: GestureDetector(
                 onTap: () => _showSiteBottomSheet(site),
                 child: _MapPin(
-                  color: CategoriesLegendCard.dotColorForLabel(site.category),
+                  color: PlaceCategory.pinColorForLabel(site.category),
+                  categoryLabel: site.category,
                 ),
               ),
             ),
@@ -426,7 +425,6 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           child: SizedBox(
             height: 44,
             child: CategoriesLegendCard(
-              isDarkMode: isDarkMode,
               selectedCategory: selectedCategory,
               onCategorySelected: (category) =>
                   _onCategorySelected(category, sites),
@@ -604,27 +602,54 @@ PlaceCategory _toPlaceCategory(String category) {
 
 class _MapPin extends StatelessWidget {
   final Color color;
+  final String categoryLabel;
 
-  const _MapPin({required this.color});
+  const _MapPin({
+    required this.color,
+    required this.categoryLabel,
+  });
+
+  IconData _iconForCategory() {
+    switch (categoryLabel) {
+      case 'Historia':
+        return Icons.account_balance;
+      case 'Mirador':
+        return Icons.visibility;
+      case 'Gastronomía':
+        return Icons.restaurant;
+      case 'Naturaleza':
+        return Icons.terrain;
+      default:
+        return Icons.place;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: 36,
+      height: 36,
       decoration: BoxDecoration(
         color: color,
         shape: BoxShape.circle,
-        boxShadow: const [
+        border: Border.all(color: Colors.white, width: 2.5),
+        boxShadow: [
           BoxShadow(
-            color: Colors.black26,
+            color: color.withValues(alpha: 0.45),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+          const BoxShadow(
+            color: Color(0x26000000),
             blurRadius: 4,
-            offset: Offset(0, 2),
+            offset: Offset(0, 1),
           ),
         ],
       ),
-      child: const Icon(
-        Icons.place,
+      child: Icon(
+        _iconForCategory(),
         color: Colors.white,
-        size: 20,
+        size: 18,
       ),
     );
   }

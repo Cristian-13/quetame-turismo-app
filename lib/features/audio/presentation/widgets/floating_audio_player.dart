@@ -27,37 +27,30 @@ class FloatingAudioPlayer extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 4),
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surfaceElevated,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 18,
-            offset: Offset(0, 8),
-          ),
-        ],
+        boxShadow: AppShadows.soft,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
-              const Icon(Icons.headphones, color: AppColors.flagGreen),
+              const Icon(Icons.headphones, color: AppColors.goldPrimary),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   audioProvider.currentTrackTitle,
                   style: AppTextStyles.bodyMuted.copyWith(
-                    color: const Color(0xFF2E3740),
+                    color: AppColors.onSurface,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
               Text(
                 '${_formatDuration(audioProvider.currentPosition)} / ${_formatDuration(audioProvider.totalDuration)}',
-                style: const TextStyle(
-                  color: Color(0xFF7A828A),
-                  fontSize: 12,
+                style: AppTextStyles.bodyMuted.copyWith(
+                  color: AppColors.onSurfaceMuted,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -67,8 +60,8 @@ class FloatingAudioPlayer extends StatelessWidget {
           LinearProgressIndicator(
             value: progress,
             minHeight: 5,
-            backgroundColor: const Color(0xFFE2E7EA),
-            valueColor: const AlwaysStoppedAnimation(AppColors.flagGreen),
+            backgroundColor: AppColors.surfaceVariant,
+            valueColor: const AlwaysStoppedAnimation(AppColors.goldPrimary),
           ),
           const SizedBox(height: 10),
           Row(
@@ -77,12 +70,12 @@ class FloatingAudioPlayer extends StatelessWidget {
               IconButton(
                 onPressed: () => context.read<AudioProvider>().skipBackward(),
                 icon: const Icon(Icons.replay_10),
-                color: const Color(0xFF44505A),
+                color: AppColors.onSurface,
               ),
               const SizedBox(width: 10),
               CircleAvatar(
                 radius: 24,
-                backgroundColor: AppColors.primaryTerracotta,
+                backgroundColor: AppColors.earthAccent,
                 child: IconButton(
                   onPressed: () {
                     context.read<AudioProvider>().toggleRoutePlayPause(
@@ -101,7 +94,7 @@ class FloatingAudioPlayer extends StatelessWidget {
               IconButton(
                 onPressed: () => context.read<AudioProvider>().skipForward(),
                 icon: const Icon(Icons.forward_10),
-                color: const Color(0xFF44505A),
+                color: AppColors.onSurface,
               ),
             ],
           ),

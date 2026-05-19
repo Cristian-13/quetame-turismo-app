@@ -3,6 +3,7 @@ import 'package:quetame_turismo/models/place_model.dart';
 import 'package:quetame_turismo/screens/place_detail_screen.dart';
 import 'package:quetame_turismo/theme/app_colors.dart';
 import 'package:quetame_turismo/theme/app_theme.dart';
+import 'package:quetame_turismo/theme/app_theme_extension.dart';
 
 class PlaceBottomSheet extends StatelessWidget {
   final PlaceModel place;
@@ -20,11 +21,13 @@ class PlaceBottomSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final extras = Theme.of(context).extension<QuetameThemeColors>()!;
 
     return Container(
       decoration: BoxDecoration(
-        color: colorScheme.surface,
+        color: extras.elevatedSurface,
         borderRadius: AppRadii.topSheet,
+        border: Border.all(color: extras.elevatedBorder, width: 1),
         boxShadow: AppShadows.soft,
       ),
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
@@ -37,7 +40,7 @@ class PlaceBottomSheet extends StatelessWidget {
               width: 44,
               height: 5,
               decoration: BoxDecoration(
-                color: Colors.grey.shade400,
+                color: AppColors.outline,
                 borderRadius: AppRadii.md,
               ),
             ),
@@ -52,7 +55,7 @@ class PlaceBottomSheet extends StatelessWidget {
                 place.imageUrl,
                 fit: BoxFit.cover,
                 errorBuilder: (_, _, _) =>
-                    Container(color: const Color(0xFFDDE2E6)),
+                    Container(color: AppColors.surfaceVariant),
               ),
             ),
           ),
@@ -100,7 +103,7 @@ class PlaceBottomSheet extends StatelessWidget {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.flagGreen,
+                    backgroundColor: AppColors.goldPrimary,
                     foregroundColor: Colors.white,
                     shape: const RoundedRectangleBorder(
                       borderRadius: AppRadii.md,

@@ -11,11 +11,10 @@ class EventsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final events = context.watch<EventProvider>().events;
 
     return ColoredBox(
-      color: isDark ? const Color(0xFF1E1E1E) : theme.scaffoldBackgroundColor,
+      color: theme.scaffoldBackgroundColor,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
         children: [
@@ -23,17 +22,16 @@ class EventsScreen extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [AppColors.flagGreen, Color(0xFF16633B)],
+                colors: AppColors.gradientHero,
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Text(
+            child: Text(
               'Agenda Bicentenario',
-              style: TextStyle(
+              style: theme.textTheme.titleLarge?.copyWith(
                 color: Colors.white,
-                fontSize: 22,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -56,12 +54,12 @@ class EventCard extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final muted = scheme.onSurfaceVariant;
-    final isDark = theme.brightness == Brightness.dark;
 
     return Card(
       clipBehavior: Clip.antiAlias,
       margin: const EdgeInsets.only(bottom: 16),
-      color: isDark ? const Color(0xFF1E1E1E) : theme.cardColor,
+      color: theme.cardColor,
+      elevation: theme.cardTheme.elevation,
       child: InkWell(
         onTap: () => EventDetailBottomSheet.show(context, event),
         child: Row(
@@ -69,9 +67,13 @@ class EventCard extends StatelessWidget {
             Container(
               width: 86,
               padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-              decoration: BoxDecoration(
-                color: AppColors.flagGreen,
-                borderRadius: const BorderRadius.only(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: AppColors.gradientHero,
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+                borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(16),
                   bottomLeft: Radius.circular(16),
                 ),
@@ -81,15 +83,14 @@ class EventCard extends StatelessWidget {
                 children: [
                   Text(
                     event.day,
-                    style: const TextStyle(
+                    style: theme.textTheme.headlineSmall?.copyWith(
                       color: Colors.white,
-                      fontSize: 26,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   Text(
                     event.month,
-                    style: const TextStyle(
+                    style: theme.textTheme.labelMedium?.copyWith(
                       color: Colors.white70,
                       fontWeight: FontWeight.w700,
                     ),

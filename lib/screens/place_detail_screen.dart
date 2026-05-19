@@ -117,7 +117,7 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
     if (apertura == null || cierre == null) {
       return const _OpenStateData(
         label: 'Consultar horarios',
-        color: Color(0xFF8A8F99),
+        color: AppColors.onSurfaceMuted,
       );
     }
 
@@ -128,9 +128,9 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
         : currentMinutes >= apertura || currentMinutes < cierre;
 
     if (isOpen) {
-      return const _OpenStateData(label: 'ABIERTO', color: AppColors.flagGreen);
+      return const _OpenStateData(label: 'ABIERTO', color: AppColors.goldPrimary);
     }
-    return const _OpenStateData(label: 'CERRADO', color: Color(0xFFD85C5C));
+    return const _OpenStateData(label: 'CERRADO', color: AppColors.error);
   }
 
   int? _toMinutes(String? value) {
@@ -158,8 +158,8 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
         : place.historia!.trim();
     final horarios = place.horarios?.trim() ?? '';
     final pageBg =
-        isDark ? const Color(0xFF1E1E1E) : theme.scaffoldBackgroundColor;
-    final sheetBg = isDark ? const Color(0xFF1E1E1E) : colorScheme.surface;
+        isDark ? AppColors.darkBackground : theme.scaffoldBackgroundColor;
+    final sheetBg = isDark ? AppColors.darkSurface : colorScheme.surface;
     final openState = _buildOpenState(place);
 
     return Scaffold(
@@ -186,7 +186,7 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
                       _CircleActionButton(
                         icon: Icons.share_outlined,
                         onPressed: _sharePlace,
-                        iconColor: AppColors.flagGreen,
+                        iconColor: AppColors.goldPrimary,
                       ),
                       const SizedBox(width: 8),
                       _CircleActionButton(
@@ -194,7 +194,7 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
                             _isFavorite ? Icons.favorite : Icons.favorite_border,
                         onPressed: _toggleFavorite,
                         iconColor:
-                            _isFavorite ? const Color(0xFFE24D4D) : null,
+                            _isFavorite ? AppColors.error : null,
                       ),
                     ],
                   ),
@@ -239,9 +239,9 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
                               icon: const Icon(Icons.map_outlined),
                               label: const Text('Direcciones'),
                               style: OutlinedButton.styleFrom(
-                                foregroundColor: AppColors.flagGreen,
+                                foregroundColor: AppColors.goldPrimary,
                                 side: const BorderSide(
-                                  color: AppColors.flagGreen,
+                                  color: AppColors.goldPrimary,
                                 ),
                                 shape: const RoundedRectangleBorder(
                                   borderRadius: AppRadii.md,
@@ -259,7 +259,7 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
                               icon: const Icon(Icons.call),
                               label: const Text('Llamar'),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.flagGreen,
+                                backgroundColor: AppColors.goldPrimary,
                                 foregroundColor: Colors.white,
                                 shape: const RoundedRectangleBorder(
                                   borderRadius: AppRadii.md,
@@ -281,7 +281,7 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
                             icon: const Icon(Icons.restaurant_menu),
                             label: const Text('Ver Menú'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.flagGreen,
+                              backgroundColor: AppColors.goldPrimary,
                               foregroundColor: Colors.white,
                               shape: const RoundedRectangleBorder(
                                 borderRadius: AppRadii.md,
@@ -295,8 +295,8 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
                       TabBar(
                         isScrollable: false,
                         tabAlignment: TabAlignment.fill,
-                        indicatorColor: AppColors.flagGreen,
-                        labelColor: AppColors.flagGreen,
+                        indicatorColor: AppColors.goldPrimary,
+                        labelColor: AppColors.goldPrimary,
                         unselectedLabelColor: colorScheme.onSurfaceVariant,
                         tabs: [
                           const Tab(text: 'Historia'),
@@ -374,7 +374,8 @@ class _GalleryImage extends StatelessWidget {
     return Image.network(
       url,
       fit: BoxFit.cover,
-      errorBuilder: (_, _, _) => Container(color: const Color(0xFFDDE2E6)),
+      errorBuilder: (_, _, _) =>
+          Container(color: AppColors.surfaceVariant),
     );
   }
 }
@@ -396,7 +397,7 @@ class _CircleActionButton extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
+        color: isDark ? AppColors.darkSurfaceVariant : AppColors.surfaceElevated,
         shape: BoxShape.circle,
         boxShadow: isDark
             ? const [

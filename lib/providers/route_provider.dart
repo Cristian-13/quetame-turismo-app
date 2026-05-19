@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:latlong2/latlong.dart';
 import 'package:quetame_turismo/models/trail_route.dart';
+import 'package:quetame_turismo/theme/app_colors.dart';
 
 class RouteProvider extends ChangeNotifier {
   RouteProvider() {
@@ -147,8 +148,8 @@ class RouteProvider extends ChangeNotifier {
           stops: '—',
           downloaded: true,
           difficulty: 'Moderada',
-          difficultyColor: const Color(0xFFFFE08A),
-          difficultyTextColor: const Color(0xFF1E1E1E),
+          difficultyColor: AppColors.difficultyModerateBg,
+          difficultyTextColor: AppColors.difficultyModerateFg,
           pathPoints: laTorrePoints,
         ),
         TrailRoute(
@@ -161,8 +162,8 @@ class RouteProvider extends ChangeNotifier {
           stops: '—',
           downloaded: false,
           difficulty: 'Difícil',
-          difficultyColor: const Color(0xFFFFB4A8),
-          difficultyTextColor: const Color(0xFF8E1D15),
+          difficultyColor: AppColors.difficultyHardBg,
+          difficultyTextColor: AppColors.difficultyHardFg,
           pathPoints: paramoPoints,
         ),
       ]);
@@ -178,8 +179,8 @@ class RouteProvider extends ChangeNotifier {
           stops: '—',
           downloaded: false,
           difficulty: 'Moderada',
-          difficultyColor: Color(0xFFFFE08A),
-          difficultyTextColor: Color(0xFF1E1E1E),
+          difficultyColor: AppColors.difficultyModerateBg,
+          difficultyTextColor: AppColors.difficultyModerateFg,
           pathPoints: [],
         ),
         TrailRoute(
@@ -191,8 +192,8 @@ class RouteProvider extends ChangeNotifier {
           stops: '—',
           downloaded: false,
           difficulty: 'Difícil',
-          difficultyColor: Color(0xFFFFB4A8),
-          difficultyTextColor: Color(0xFF8E1D15),
+          difficultyColor: AppColors.difficultyHardBg,
+          difficultyTextColor: AppColors.difficultyHardFg,
           pathPoints: [],
         ),
       ];

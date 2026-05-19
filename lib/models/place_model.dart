@@ -5,7 +5,23 @@ enum PlaceCategory {
   historia,
   naturaleza,
   mirador,
-  gastronomia,
+  gastronomia;
+
+  /// Color del pin según etiqueta de categoría (Firestore / leyenda).
+  static Color pinColorForLabel(String label) {
+    switch (label) {
+      case 'Historia':
+        return PlaceCategory.historia.color;
+      case 'Naturaleza':
+        return PlaceCategory.naturaleza.color;
+      case 'Mirador':
+        return PlaceCategory.mirador.color;
+      case 'Gastronomía':
+        return PlaceCategory.gastronomia.color;
+      default:
+        return PlaceCategory.naturaleza.color;
+    }
+  }
 }
 
 extension PlaceCategoryX on PlaceCategory {
@@ -25,13 +41,13 @@ extension PlaceCategoryX on PlaceCategory {
   Color get color {
     switch (this) {
       case PlaceCategory.historia:
-        return const Color(0xFF8A4B22);
+        return AppColors.categoryHistoria;
       case PlaceCategory.naturaleza:
-        return AppColors.flagGreen;
+        return AppColors.categoryNaturaleza;
       case PlaceCategory.mirador:
-        return const Color(0xFF4D74D9);
+        return AppColors.categoryMirador;
       case PlaceCategory.gastronomia:
-        return const Color(0xFFF15A4A);
+        return AppColors.categoryGastronomia;
     }
   }
 }
