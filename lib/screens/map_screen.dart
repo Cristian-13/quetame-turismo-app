@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:quetame_turismo/features/map/data/osrm_route_service.dart';
 import 'package:quetame_turismo/features/map/presentation/widgets/categories_legend_card.dart';
+import 'package:quetame_turismo/features/map/presentation/widgets/user_location_marker_layer.dart';
 import 'package:quetame_turismo/models/place_model.dart';
 import 'package:quetame_turismo/providers/location_provider.dart';
 import 'package:quetame_turismo/providers/route_provider.dart';
@@ -320,7 +321,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       return;
     }
 
-    final current = locationProvider.currentLocation;
+    final current = locationProvider.positionNotifier.value;
     if (current != null) {
       _mapController.move(current, 15.5);
     }
@@ -328,8 +329,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final locationProvider = context.watch<LocationProvider>();
-    final userLocation = locationProvider.currentLocation;
+    final locationProvider = context.read<LocationProvider>();
     final routeProvider = context.watch<RouteProvider>();
     final geoRoutes = routeProvider.visibleGeoRoutesOnMainMap;
     final hasActivePlaceRoute = routeProvider.hasActivePlaceRoute;
@@ -360,72 +360,54 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
             <_FirestoreSite>[];
         final filteredSites = _sitesForFilter(sites);
 
-        final markers = [
-          ...filteredSites.map(
-            (site) => Marker(
-              width: 36,
-              height: 36,
-              point: LatLng(site.latitud, site.longitud),
-              child: GestureDetector(
-                onTap: () => _showSiteBottomSheet(site),
-                child: _MapPin(
-                  color: PlaceCategory.pinColorForLabel(site.category),
-                  categoryLabel: site.category,
-                ),
+        final siteMarkers = filteredSites.map(
+          (site) => Marker(
+            width: 36,
+            height: 36,
+            point: LatLng(site.latitud, site.longitud),
+            child: GestureDetector(
+              onTap: () => _showSiteBottomSheet(site),
+              child: _MapPin(
+                color: PlaceCategory.pinColorForLabel(site.category),
+                categoryLabel: site.category,
               ),
             ),
           ),
-          if (userLocation != null)
-            Marker(
-              width: 24,
-              height: 24,
-              point: userLocation,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.blueAccent,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 3),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 6,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        ];
+        );
 
         return Stack(
           children: [
-            FlutterMap(
-          mapController: _mapController,
-          options: const MapOptions(
-            initialCenter: _quetameCenter,
-            initialZoom: _defaultMapZoom,
-          ),
-          children: [
-            TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'com.quetame_turismo.app',
-            ),
-            if (geoRoutes.isNotEmpty)
-              PolylineLayer(
-                polylines: [
-                  for (final path in geoRoutes)
-                    Polyline(
-                      points: path,
-                      strokeWidth: 4.0,
-                      color: Colors.redAccent,
+            RepaintBoundary(
+              child: FlutterMap(
+                mapController: _mapController,
+                options: const MapOptions(
+                  initialCenter: _quetameCenter,
+                  initialZoom: _defaultMapZoom,
+                ),
+                children: [
+                  TileLayer(
+                    urlTemplate:
+                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    userAgentPackageName: 'com.quetame_turismo.app',
+                  ),
+                  if (geoRoutes.isNotEmpty)
+                    PolylineLayer(
+                      polylines: [
+                        for (final path in geoRoutes)
+                          Polyline(
+                            points: path,
+                            strokeWidth: 4.0,
+                            color: Colors.redAccent,
+                          ),
+                      ],
                     ),
+                  MarkerLayer(markers: siteMarkers.toList()),
+                  UserLocationMarkerLayer(
+                    positionListenable: locationProvider.positionNotifier,
+                  ),
                 ],
               ),
-            MarkerLayer(
-              markers: markers,
             ),
-          ],
-        ),
         Positioned(
           left: 16,
           right: 16,

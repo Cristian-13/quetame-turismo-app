@@ -1,13 +1,18 @@
 import 'dart:async';
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:quetame_turismo/core/audio_source_resolver.dart';
 
 class AudioProvider extends ChangeNotifier {
   AudioProvider() {
+    if (kIsWeb) {
+      unawaited(_player.setPlayerMode(PlayerMode.mediaElement));
+    }
     _positionSub = _player.onPositionChanged.listen((d) {
       _currentPosition = d;
-      notifyListeners();
+      _throttledNotify();
     });
     _durationSub = _player.onDurationChanged.listen((d) {
       _totalDuration = d;
@@ -37,6 +42,7 @@ class AudioProvider extends ChangeNotifier {
   Duration _totalDuration = Duration.zero;
   String? _activeRouteId;
   String? _loadedUrl;
+  Timer? _notifyThrottle;
 
   bool get isPlaying => _isPlaying;
   String get currentTrackTitle => _currentTrackTitle;
@@ -44,21 +50,40 @@ class AudioProvider extends ChangeNotifier {
   Duration get totalDuration => _totalDuration;
   String? get activeRouteId => _activeRouteId;
 
-  /// Si [routeId] es distinto al de la sesión actual: [stop], tiempo a cero y nueva URL.
-  /// Si es la misma ruta, reanuda desde la posición actual (o desde el inicio si terminó).
+  void _throttledNotify() {
+    _notifyThrottle ??= Timer(const Duration(milliseconds: 250), () {
+      _notifyThrottle = null;
+      notifyListeners();
+    });
+  }
+
+  Future<void> _playSource(Source source) async {
+    if (kIsWeb) {
+      await _player.setSource(source);
+      await _player.setVolume(1.0);
+      await _player.resume();
+    } else {
+      await _player.play(source);
+    }
+  }
+
   Future<void> playRouteAudio(
     String routeId,
     String url, {
     String? trackTitle,
   }) async {
     try {
-      if (_activeRouteId == routeId) {
+      if (_activeRouteId == routeId && _loadedUrl != null) {
         if (_totalDuration > Duration.zero &&
             _currentPosition >=
                 _totalDuration - const Duration(milliseconds: 400)) {
           await _player.seek(Duration.zero);
         }
-        await _player.resume();
+        if (kIsWeb) {
+          await _player.resume();
+        } else {
+          await _player.resume();
+        }
         return;
       }
 
@@ -73,9 +98,10 @@ class AudioProvider extends ChangeNotifier {
       }
       notifyListeners();
 
+      final source = AudioSourceResolver.resolve(url);
       _activeRouteId = routeId;
       _loadedUrl = url;
-      await _player.play(UrlSource(url));
+      await _playSource(source);
     } catch (e, st) {
       debugPrint('playRouteAudio error: $e\n$st');
       await _player.stop();
@@ -122,6 +148,7 @@ class AudioProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _notifyThrottle?.cancel();
     unawaited(_positionSub?.cancel());
     unawaited(_durationSub?.cancel());
     unawaited(_stateSub?.cancel());

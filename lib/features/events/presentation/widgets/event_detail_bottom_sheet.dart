@@ -1,5 +1,6 @@
 import 'package:add_2_calendar/add_2_calendar.dart' as a2c;
 import 'package:flutter/material.dart';
+import 'package:quetame_turismo/core/calendar_link_builder.dart';
 import 'package:quetame_turismo/models/event_model.dart';
 import 'package:quetame_turismo/theme/app_theme.dart';
 import 'package:quetame_turismo/theme/app_theme_extension.dart';
@@ -77,6 +78,34 @@ class EventDetailBottomSheet extends StatelessWidget {
       startDate: start,
       endDate: end,
     );
+
+    if (CalendarLinkBuilder.useGoogleCalendarWeb) {
+      final url = CalendarLinkBuilder.googleCalendarUrl(
+        title: title,
+        description: description.isEmpty
+            ? 'Evento — Quetame Turismo'
+            : description,
+        location: location.isEmpty ? 'Quetame, Cundinamarca' : location,
+        start: start,
+        end: end,
+      );
+      try {
+        final ok = await CalendarLinkBuilder.openGoogleCalendarInBrowser(url);
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              ok
+                  ? 'Abriendo Google Calendar en una nueva pestaña'
+                  : 'No se pudo abrir Google Calendar en el navegador',
+            ),
+          ),
+        );
+      } catch (e) {
+        _showCalendarError(context, e);
+      }
+      return;
+    }
 
     try {
       final ok = await a2c.Add2Calendar.addEvent2Cal(calEvent);

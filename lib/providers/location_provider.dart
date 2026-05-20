@@ -5,11 +5,16 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 class LocationProvider extends ChangeNotifier {
-  LatLng? currentLocation;
+  /// Actualización de coordenadas sin reconstruir el árbol del mapa completo.
+  final ValueNotifier<LatLng?> positionNotifier = ValueNotifier<LatLng?>(null);
+
+  LatLng? get currentLocation => positionNotifier.value;
+
   bool isLocationServiceEnabled = false;
   LocationPermission permission = LocationPermission.denied;
 
   StreamSubscription<Position>? _positionSubscription;
+  static const _distanceFilterMeters = 8.0;
 
   Future<void> initialize() async {
     await refreshLocationState();
@@ -42,6 +47,22 @@ class LocationProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _updatePosition(LatLng next) {
+    final previous = positionNotifier.value;
+    if (previous != null) {
+      final delta = Geolocator.distanceBetween(
+        previous.latitude,
+        previous.longitude,
+        next.latitude,
+        next.longitude,
+      );
+      if (delta < _distanceFilterMeters) {
+        return;
+      }
+    }
+    positionNotifier.value = next;
+  }
+
   Future<void> _startPositionStream() async {
     if (!isLocationServiceEnabled) return;
 
@@ -59,15 +80,26 @@ class LocationProvider extends ChangeNotifier {
     }
 
     await _positionSubscription?.cancel();
-    _positionSubscription = Geolocator.getPositionStream().listen((position) {
-      currentLocation = LatLng(position.latitude, position.longitude);
-      notifyListeners();
+    _positionSubscription = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.medium,
+        distanceFilter: 8,
+      ),
+    ).listen((position) {
+      _updatePosition(LatLng(position.latitude, position.longitude));
     });
+
+    final last = await Geolocator.getLastKnownPosition();
+    if (last != null) {
+      positionNotifier.value =
+          LatLng(last.latitude, last.longitude);
+    }
   }
 
   @override
   void dispose() {
     _positionSubscription?.cancel();
+    positionNotifier.dispose();
     super.dispose();
   }
 }

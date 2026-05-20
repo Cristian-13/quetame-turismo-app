@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:quetame_turismo/features/dashboard/presentation/widgets/dashboard_background.dart';
 import 'package:quetame_turismo/providers/route_provider.dart';
 import 'package:quetame_turismo/providers/theme_provider.dart';
 import 'package:quetame_turismo/screens/events_screen.dart';
@@ -40,107 +41,161 @@ class MainScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final curiosidad =
         _curiosidades[DateTime.now().millisecond % _curiosidades.length];
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Quetame Turismo',
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: theme.colorScheme.onSurface,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          const DashboardBackground(),
+          SafeArea(
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Quetame Turismo',
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: isDark
+                                  ? AppColors.champagne
+                                  : Colors.white,
+                              shadows: const [
+                                Shadow(
+                                  color: Colors.black38,
+                                  blurRadius: 6,
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
+                        IconButton(
+                          tooltip: 'Cambiar tema',
+                          onPressed: () =>
+                              context.read<ThemeProvider>().toggleTheme(),
+                          icon: Icon(
+                            isDark
+                                ? Icons.light_mode_outlined
+                                : Icons.dark_mode_outlined,
+                            color: AppColors.goldLight,
+                          ),
+                        ),
+                      ],
                     ),
-                    IconButton(
-                      tooltip: 'Cambiar tema',
-                      onPressed: () =>
-                          context.read<ThemeProvider>().toggleTheme(),
-                      icon: Icon(
-                        theme.brightness == Brightness.dark
-                            ? Icons.light_mode_outlined
-                            : Icons.dark_mode_outlined,
-                        color: AppColors.goldPrimary,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
-                child: _CuriosityBanner(text: curiosidad),
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-              sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 14,
-                  crossAxisSpacing: 14,
-                  childAspectRatio: 0.92,
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+                    child: _CuriosityBanner(text: curiosidad),
+                  ),
                 ),
-                delegate: SliverChildListDelegate([
-                  _DashboardActionCard(
-                    icon: Icons.map_outlined,
-                    title: 'Mapa Turístico',
-                    onTap: () => _openSection(
-                      context,
-                      title: 'Mapa Turístico',
-                      child: const MapScreen(),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                    child: _DashboardActionGrid(
+                      children: [
+                        _DashboardActionCard(
+                          icon: Icons.map_outlined,
+                          title: 'Mapa Turístico',
+                          onTap: () => _openSection(
+                            context,
+                            title: 'Mapa Turístico',
+                            child: const MapScreen(),
+                          ),
+                        ),
+                        _DashboardActionCard(
+                          icon: Icons.forest_outlined,
+                          title: 'Rutas Ecológicas',
+                          onTap: () => _openSection(
+                            context,
+                            title: 'Rutas Ecológicas',
+                            child: const RoutesScreen(),
+                            onOpen: () => context
+                                .read<RouteProvider>()
+                                .setRoutesTabActive(true),
+                            onClose: () => context
+                                .read<RouteProvider>()
+                                .setRoutesTabActive(false),
+                          ),
+                        ),
+                        _DashboardActionCard(
+                          icon: Icons.event_outlined,
+                          title: 'Agenda Bicentenario',
+                          onTap: () => _openSection(
+                            context,
+                            title: 'Agenda Bicentenario',
+                            child: const EventsScreen(),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  _DashboardActionCard(
-                    icon: Icons.forest_outlined,
-                    title: 'Rutas Ecológicas',
-                    onTap: () => _openSection(
-                      context,
-                      title: 'Rutas Ecológicas',
-                      child: const RoutesScreen(),
-                      onOpen: () => context
-                          .read<RouteProvider>()
-                          .setRoutesTabActive(true),
-                      onClose: () => context
-                          .read<RouteProvider>()
-                          .setRoutesTabActive(false),
-                    ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Distribución 2+1: dos tarjetas arriba y la tercera centrada abajo.
+class _DashboardActionGrid extends StatelessWidget {
+  final List<Widget> children;
+
+  const _DashboardActionGrid({required this.children});
+
+  static const double _spacing = 14;
+  static const double _aspectRatio = 0.92;
+
+  @override
+  Widget build(BuildContext context) {
+    assert(children.length == 3, 'El dashboard requiere exactamente 3 tarjetas');
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cellWidth = (constraints.maxWidth - _spacing) / 2;
+        final cellHeight = cellWidth / _aspectRatio;
+
+        return Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: cellHeight,
+                    child: children[0],
                   ),
-                  _DashboardActionCard(
-                    icon: Icons.storefront_outlined,
-                    title: 'Comercio y Servicios',
-                    onTap: () => _openSection(
-                      context,
-                      title: 'Comercio y Servicios',
-                      child: const MapScreen(initialCategory: 'Gastronomía'),
-                    ),
+                ),
+                const SizedBox(width: _spacing),
+                Expanded(
+                  child: SizedBox(
+                    height: cellHeight,
+                    child: children[1],
                   ),
-                  _DashboardActionCard(
-                    icon: Icons.event_outlined,
-                    title: 'Agenda Bicentenario',
-                    onTap: () => _openSection(
-                      context,
-                      title: 'Agenda Bicentenario',
-                      child: const EventsScreen(),
-                    ),
-                  ),
-                ]),
+                ),
+              ],
+            ),
+            const SizedBox(height: _spacing),
+            Align(
+              alignment: Alignment.center,
+              child: SizedBox(
+                width: cellWidth,
+                height: cellHeight,
+                child: children[2],
               ),
             ),
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -153,14 +208,16 @@ class _CuriosityBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppColors.goldLight.withValues(alpha: 0.95),
-            AppColors.goldPrimary.withValues(alpha: 0.75),
+            AppColors.goldLight.withValues(alpha: isDark ? 0.88 : 0.95),
+            AppColors.goldPrimary.withValues(alpha: isDark ? 0.82 : 0.78),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -222,10 +279,14 @@ class _DashboardActionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final scheme = theme.colorScheme;
+    final cardColor = theme.cardColor;
+    final borderColor = theme.brightness == Brightness.dark
+        ? AppColors.borderDark
+        : AppColors.borderLight;
 
     return Material(
-      color: AppColors.cardSurface,
+      color: cardColor,
       elevation: 0,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
@@ -233,16 +294,16 @@ class _DashboardActionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         child: Ink(
           decoration: BoxDecoration(
-            color: AppColors.cardSurface,
+            color: cardColor,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: isDark ? AppColors.borderDark : AppColors.borderLight,
-            ),
-            boxShadow: const [
+            border: Border.all(color: borderColor),
+            boxShadow: [
               BoxShadow(
-                color: AppColors.elevatedShadow,
+                color: AppColors.elevatedShadow.withValues(
+                  alpha: theme.brightness == Brightness.dark ? 0.35 : 1,
+                ),
                 blurRadius: 8,
-                offset: Offset(0, 2),
+                offset: const Offset(0, 2),
               ),
             ],
           ),
@@ -260,7 +321,7 @@ class _DashboardActionCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: theme.colorScheme.onSurface,
+                    color: scheme.onSurface,
                     height: 1.2,
                   ),
                 ),
