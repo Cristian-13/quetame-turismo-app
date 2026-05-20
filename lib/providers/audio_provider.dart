@@ -8,7 +8,7 @@ import 'package:quetame_turismo/core/audio_source_resolver.dart';
 class AudioProvider extends ChangeNotifier {
   AudioProvider() {
     if (kIsWeb) {
-      unawaited(_player.setPlayerMode(PlayerMode.mediaElement));
+      unawaited(_player.setPlayerMode(PlayerMode.mediaPlayer));
     }
     _positionSub = _player.onPositionChanged.listen((d) {
       _currentPosition = d;
