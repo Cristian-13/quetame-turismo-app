@@ -13,7 +13,9 @@ import 'package:quetame_turismo/screens/place_detail_screen.dart';
 import 'package:quetame_turismo/theme/app_colors.dart';
 
 class MapScreen extends StatefulWidget {
-  const MapScreen({super.key});
+  final String? initialCategory;
+
+  const MapScreen({super.key, this.initialCategory});
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -27,7 +29,13 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   AnimationController? _cameraAnim;
 
   /// Filtro de categorías: 'Todos' o categoría normalizada desde Firestore.
-  String selectedCategory = 'Todos';
+  late String selectedCategory;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedCategory = widget.initialCategory ?? 'Todos';
+  }
 
   @override
   void dispose() {

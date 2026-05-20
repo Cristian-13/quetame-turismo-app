@@ -199,12 +199,12 @@ class RouteCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final compact = constraints.maxHeight < 360;
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                flex: compact ? 3 : 4,
+              SizedBox(
+                height: 180,
+                width: double.infinity,
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -234,11 +234,10 @@ class RouteCard extends StatelessWidget {
                 ),
               ),
               Expanded(
-                flex: compact ? 5 : 6,
                 child: Container(
                   color: theme.cardTheme.color ?? AppColors.cardSurface,
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                    padding: const EdgeInsets.all(16),
                     child: SingleChildScrollView(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -403,60 +402,71 @@ class _RouteCoverImage extends StatelessWidget {
   Widget build(BuildContext context) {
     final imageUrl = imageUrlFor(route);
 
-    if (imageUrl == null) {
-      return const ColoredBox(color: AppColors.goldPrimary);
-    }
-
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        const ColoredBox(color: AppColors.goldPrimary),
-        Image.network(
-          imageUrl,
-          fit: BoxFit.cover,
-          loadingBuilder: (context, child, loadingProgress) {
-            if (loadingProgress == null) return child;
-            return ColoredBox(
-              color: AppColors.goldPrimary,
-              child: Center(
-                child: CircularProgressIndicator(
-                  value: loadingProgress.expectedTotalBytes != null
-                      ? loadingProgress.cumulativeBytesLoaded /
-                          loadingProgress.expectedTotalBytes!
-                      : null,
-                  color: Colors.white,
-                  strokeWidth: 2.5,
-                ),
+    return SizedBox(
+      height: 180,
+      width: double.infinity,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          const ColoredBox(color: AppColors.goldPrimary),
+          if (imageUrl != null)
+            Image.network(
+              imageUrl,
+              height: 180,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              gaplessPlayback: true,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return const ColoredBox(
+                  color: AppColors.goldPrimary,
+                  child: Center(
+                    child: SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2.5,
+                      ),
+                    ),
+                  ),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return const ColoredBox(
+                  color: AppColors.goldPrimary,
+                  child: Center(
+                    child: Icon(
+                      Icons.landscape_outlined,
+                      color: Colors.white70,
+                      size: 48,
+                    ),
+                  ),
+                );
+              },
+            )
+          else
+            const Center(
+              child: Icon(
+                Icons.landscape_outlined,
+                color: Colors.white70,
+                size: 48,
               ),
-            );
-          },
-          errorBuilder: (context, error, stackTrace) {
-            return const ColoredBox(
-              color: AppColors.goldPrimary,
-              child: Center(
-                child: Icon(
-                  Icons.landscape_outlined,
-                  color: Colors.white70,
-                  size: 48,
-                ),
+            ),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  Color(0x66000000),
+                ],
               ),
-            );
-          },
-        ),
-        // Degradado inferior para legibilidad de chips
-        const DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.transparent,
-                Color(0x66000000),
-              ],
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
