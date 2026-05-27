@@ -47,4 +47,4 @@ El proyecto sigue los principios de **Solid** y **Clean Architecture** para gara
 
 1. **Clonar el repositorio:**
    ```bash
-   git clone [https://github.com/tu-usuario/quetame_turismo.git](https://github.com/tu-usuario/quetame_turismo.git)
+   git clone https://github.com/tu-usuario/quetame_turismo.git
