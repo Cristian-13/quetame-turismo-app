@@ -81,36 +81,6 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
     }
   }
 
-  Future<void> _openMenuUrl() async {
-    final menuUrl = (widget.place.menuUrl ?? '').trim();
-    if (menuUrl.isEmpty) return;
-    final uri = Uri.tryParse(menuUrl);
-    if (uri == null) {
-      _showActionSnack('El enlace del menú no es válido.');
-      return;
-    }
-    final isImage = _isImageUrl(menuUrl);
-    final launched = await launchUrl(
-      uri,
-      mode: LaunchMode.externalApplication,
-    );
-    if (!launched) {
-      _showActionSnack('No se pudo abrir el menú en el navegador.');
-      return;
-    }
-    if (isImage) {
-      _showActionSnack('Abriendo imagen del menú...');
-    }
-  }
-
-  bool _isImageUrl(String url) {
-    final lower = url.toLowerCase().split('?').first;
-    return lower.endsWith('.jpg') ||
-        lower.endsWith('.jpeg') ||
-        lower.endsWith('.png') ||
-        lower.endsWith('.webp');
-  }
-
   _OpenStateData _buildOpenState(PlaceModel place) {
     final apertura = _toMinutes(place.horaApertura);
     final cierre = _toMinutes(place.horaCierre);
@@ -152,7 +122,7 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
     final textTheme = theme.textTheme;
     final isDark = theme.brightness == Brightness.dark;
     final showMenu = place.rawCategory.trim().toLowerCase() == 'restaurante';
-    final hasMenuUrl = (place.menuUrl ?? '').trim().isNotEmpty;
+    final menuUrl = (place.menuUrl ?? '').trim();
     final historia = (place.historia ?? '').trim().isEmpty
         ? 'Historia no disponible'
         : place.historia!.trim();
@@ -272,25 +242,6 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
                           ),
                         ],
                       ),
-                      if (hasMenuUrl) ...[
-                        const SizedBox(height: 10),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: _openMenuUrl,
-                            icon: const Icon(Icons.restaurant_menu),
-                            label: const Text('Ver Menú'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.goldPrimary,
-                              foregroundColor: Colors.white,
-                              shape: const RoundedRectangleBorder(
-                                borderRadius: AppRadii.md,
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                            ),
-                          ),
-                        ),
-                      ],
                       const SizedBox(height: 16),
                       TabBar(
                         isScrollable: false,
@@ -310,7 +261,7 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
                         child: TabBarView(
                           children: [
                             _TextTab(content: historia),
-                            if (showMenu) const _MenuTab(),
+                            if (showMenu) _MenuTab(menuUrl: menuUrl),
                             _ScheduleTab(horarios: horarios),
                           ],
                         ),
@@ -470,17 +421,132 @@ class _TextTab extends StatelessWidget {
 }
 
 class _MenuTab extends StatelessWidget {
-  const _MenuTab();
+  final String menuUrl;
+
+  const _MenuTab({required this.menuUrl});
+
+  bool get _isNetworkUrl {
+    final lower = menuUrl.toLowerCase();
+    return lower.startsWith('http://') || lower.startsWith('https://');
+  }
+
+  bool get _isAssetPath => menuUrl.startsWith('assets/');
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Text(
-        'Consulta el menú del establecimiento directamente en el lugar.',
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-          height: 1.5,
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
+
+    if (menuUrl.isEmpty) {
+      return Center(
+        child: Text(
+          'Menú no disponible para este establecimiento.',
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: muted,
+            height: 1.5,
+          ),
         ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Pellizca o desliza para hacer zoom en el menú',
+          textAlign: TextAlign.center,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: muted,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Expanded(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest,
+              borderRadius: AppRadii.md,
+              border: Border.all(
+                color: theme.colorScheme.outlineVariant,
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: AppRadii.md,
+              child: InteractiveViewer(
+                minScale: 0.6,
+                maxScale: 4.5,
+                panEnabled: true,
+                scaleEnabled: true,
+                boundaryMargin: const EdgeInsets.all(24),
+                child: Center(
+                  child: _isNetworkUrl
+                      ? Image.network(
+                          menuUrl,
+                          fit: BoxFit.contain,
+                          loadingBuilder: (context, child, progress) {
+                            if (progress == null) return child;
+                            return const Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                              ),
+                            );
+                          },
+                          errorBuilder: (_, _, _) => _MenuErrorState(
+                            message: 'No se pudo cargar la imagen del menú.',
+                          ),
+                        )
+                      : _isAssetPath
+                          ? Image.asset(
+                              menuUrl,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, _, _) => _MenuErrorState(
+                                message: 'No se encontró el archivo del menú.',
+                              ),
+                            )
+                          : Image.network(
+                              menuUrl,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, _, _) => _MenuErrorState(
+                                message: 'Formato de menú no reconocido.',
+                              ),
+                            ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MenuErrorState extends StatelessWidget {
+  final String message;
+
+  const _MenuErrorState({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.broken_image_outlined,
+            size: 48,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+        ],
       ),
     );
   }

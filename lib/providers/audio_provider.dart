@@ -8,7 +8,7 @@ import 'package:quetame_turismo/core/audio_source_resolver.dart';
 class AudioProvider extends ChangeNotifier {
   AudioProvider() {
     if (kIsWeb) {
-      unawaited(_player.setPlayerMode(PlayerMode.mediaPlayer));
+      unawaited(_player.setReleaseMode(ReleaseMode.stop));
     }
     _positionSub = _player.onPositionChanged.listen((d) {
       _currentPosition = d;
@@ -57,14 +57,14 @@ class AudioProvider extends ChangeNotifier {
     });
   }
 
-  Future<void> _playSource(Source source) async {
+  /// En Web usa [play] en un solo paso para no perder el gesto del usuario (autoplay).
+  Future<void> _startPlayback(Source source) async {
+    await _player.setVolume(1.0);
     if (kIsWeb) {
-      await _player.setSource(source);
-      await _player.setVolume(1.0);
-      await _player.resume();
-    } else {
       await _player.play(source);
+      return;
     }
+    await _player.play(source);
   }
 
   Future<void> playRouteAudio(
@@ -73,35 +73,35 @@ class AudioProvider extends ChangeNotifier {
     String? trackTitle,
   }) async {
     try {
-      if (_activeRouteId == routeId && _loadedUrl != null) {
+      final resolvedUrl = AudioSourceResolver.normalizeUrl(url);
+
+      if (_activeRouteId == routeId && _loadedUrl == resolvedUrl) {
         if (_totalDuration > Duration.zero &&
             _currentPosition >=
                 _totalDuration - const Duration(milliseconds: 400)) {
           await _player.seek(Duration.zero);
         }
-        if (kIsWeb) {
-          await _player.resume();
-        } else {
-          await _player.resume();
-        }
+        await _player.resume();
         return;
       }
 
-      await _player.stop();
-      _activeRouteId = null;
-      _loadedUrl = null;
-      _currentPosition = Duration.zero;
-      _totalDuration = Duration.zero;
-      _isPlaying = false;
       if (trackTitle != null) {
         _currentTrackTitle = trackTitle;
       }
+
+      final source = AudioSourceResolver.resolve(resolvedUrl);
+      _activeRouteId = routeId;
+      _loadedUrl = resolvedUrl;
+      _currentPosition = Duration.zero;
+      _totalDuration = Duration.zero;
+      _isPlaying = false;
       notifyListeners();
 
-      final source = AudioSourceResolver.resolve(url);
-      _activeRouteId = routeId;
-      _loadedUrl = url;
-      await _playSource(source);
+      if (!kIsWeb) {
+        await _player.stop();
+      }
+
+      await _startPlayback(source);
     } catch (e, st) {
       debugPrint('playRouteAudio error: $e\n$st');
       await _player.stop();

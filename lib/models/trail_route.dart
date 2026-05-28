@@ -16,16 +16,17 @@ class TrailRoute {
 
   /// URL de prueba de audioguía por ruta.
   /// Soporta IDs actuales y legado para evitar que todas las rutas caigan en el default.
+  /// MP3 con CORS (compatible con audioplayers en Web).
   String get audioguideUrl {
     switch (id) {
       case 'la_torre':
       case 'r1':
-        return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+        return 'https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3';
       case 'paramo_burras':
       case 'r2':
-        return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3';
+        return 'https://interactive-examples.mdn.mozilla.net/media/cc0-audio/gong-2.mp3';
       default:
-        return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+        return 'https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3';
     }
   }
 

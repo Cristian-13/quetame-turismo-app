@@ -5,8 +5,30 @@ import 'package:flutter/foundation.dart';
 class AudioSourceResolver {
   const AudioSourceResolver._();
 
-  static Source resolve(String urlOrPath) {
+  /// URLs con CORS habilitado (requerido por audioplayers en Web).
+  static const String _webFallbackMp3 =
+      'https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3';
+
+  /// Normaliza la URL antes de reproducir (p. ej. reemplaza fuentes sin CORS en Web).
+  static String normalizeUrl(String urlOrPath) {
     final trimmed = urlOrPath.trim();
+    if (trimmed.isEmpty) return trimmed;
+
+    if (!kIsWeb) return trimmed;
+
+    final lower = trimmed.toLowerCase();
+    if (lower.startsWith('http://') || lower.startsWith('https://')) {
+      if (lower.contains('soundhelix.com')) {
+        return _webFallbackMp3;
+      }
+      return trimmed;
+    }
+
+    return trimmed;
+  }
+
+  static Source resolve(String urlOrPath) {
+    final trimmed = normalizeUrl(urlOrPath);
     if (trimmed.isEmpty) {
       throw ArgumentError('La URL de audio no puede estar vacía');
     }
