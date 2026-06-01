@@ -1,13 +1,24 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
+import 'package:quetame_turismo/features/map/data/map_entity_catalog.dart';
 import 'package:quetame_turismo/features/map/data/osrm_route_service.dart';
-import 'package:quetame_turismo/features/map/presentation/widgets/categories_legend_card.dart';
-import 'package:quetame_turismo/features/map/presentation/widgets/user_location_marker_layer.dart';
-import 'package:quetame_turismo/models/place_model.dart';
+import 'package:quetame_turismo/features/map/domain/firestore_map_site.dart';
+import 'package:quetame_turismo/features/map/domain/map_entity.dart';
+import 'package:quetame_turismo/features/map/presentation/map_camera_animator.dart';
+import 'package:quetame_turismo/features/map/presentation/map_navigation_controller.dart';
+import 'package:quetame_turismo/features/map/presentation/map_view_model.dart';
+import 'package:quetame_turismo/features/map/presentation/widgets/map_canvas.dart';
+import 'package:quetame_turismo/features/map/presentation/widgets/map_category_filter_bar.dart';
+import 'package:quetame_turismo/features/map/presentation/widgets/map_glass_icon_button.dart';
+import 'package:quetame_turismo/features/map/presentation/widgets/map_navigation_hud.dart';
+import 'package:quetame_turismo/features/map/presentation/widgets/map_search_overlay.dart';
+import 'package:quetame_turismo/features/map/presentation/widgets/map_sites_panel.dart';
 import 'package:quetame_turismo/providers/location_provider.dart';
 import 'package:quetame_turismo/providers/route_provider.dart';
 import 'package:quetame_turismo/screens/place_detail_screen.dart';
@@ -25,73 +36,210 @@ class MapScreen extends StatefulWidget {
 class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   static const LatLng _quetameCenter = LatLng(4.3316, -73.8653);
   static const double _defaultMapZoom = 14.0;
+  static const double _sheetMinSize = 0.11;
+  static const double _sheetDetailSize = 0.52;
+  static const double _sheetMaxSize = 0.88;
+  static const double _floatingControlsGap = 16;
+
   final MapController _mapController = MapController();
+  final DraggableScrollableController _sheetController =
+      DraggableScrollableController();
+  final TextEditingController _searchController = TextEditingController();
+  final MapViewModel _viewModel = MapViewModel();
 
-  AnimationController? _cameraAnim;
+  late final MapCameraAnimator _cameraAnimator;
+  late final MapNavigationController _navigation;
 
-  /// Filtro de categorías: 'Todos' o categoría normalizada desde Firestore.
-  late String selectedCategory;
+  final GlobalKey _searchOverlayKey = GlobalKey();
+  double _searchOverlayHeight = 120;
+  static const double _hudHideSheetThreshold = 0.45;
+
+  late final AnimationController _hudFadeController;
+
+  Timer? _searchDebounce;
 
   @override
   void initState() {
     super.initState();
-    selectedCategory = widget.initialCategory ?? 'Todos';
+    _viewModel.setFilter(_resolveInitialFilter(widget.initialCategory));
+    _cameraAnimator = MapCameraAnimator(
+      mapController: _mapController,
+      vsync: this,
+    );
+    _navigation = MapNavigationController(
+      mapController: _mapController,
+      cameraAnimator: _cameraAnimator,
+      locationProvider: context.read<LocationProvider>(),
+      routeProvider: context.read<RouteProvider>(),
+    );
+    _sheetController.addListener(_handleSheetControllerTick);
+    _viewModel.addListener(_scheduleMeasureSearchOverlay);
+
+    _hudFadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measureSearchOverlay());
+  }
+
+  void _scheduleMeasureSearchOverlay() {
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measureSearchOverlay());
+  }
+
+  void _measureSearchOverlay() {
+    final renderBox =
+        _searchOverlayKey.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox == null || !mounted) return;
+
+    final measured = renderBox.size.height + 16;
+    if ((measured - _searchOverlayHeight).abs() > 1) {
+      setState(() => _searchOverlayHeight = measured);
+    }
+  }
+
+  void _onSheetSizeChanged(double size) {
+    if (size > _hudHideSheetThreshold) {
+      if (_hudFadeController.status != AnimationStatus.completed &&
+          _hudFadeController.status != AnimationStatus.forward) {
+        _hudFadeController.forward();
+      }
+    } else {
+      if (_hudFadeController.status != AnimationStatus.dismissed &&
+          _hudFadeController.status != AnimationStatus.reverse) {
+        _hudFadeController.reverse();
+      }
+    }
+  }
+
+  void _handleSheetControllerTick() {
+    if (!_sheetController.isAttached) return;
+    _onSheetSizeChanged(_sheetController.size);
   }
 
   @override
   void dispose() {
-    _cameraAnim?.dispose();
+    final routeProvider = context.read<RouteProvider>();
+    routeProvider.clearActivePlaceRoute();
+    routeProvider.clearSelectedRoute();
+    _viewModel.removeListener(_scheduleMeasureSearchOverlay);
+    _searchDebounce?.cancel();
+    _searchController.dispose();
+    _hudFadeController.dispose();
+    _navigation.dispose();
+    _cameraAnimator.dispose();
+    _sheetController.removeListener(_handleSheetControllerTick);
+    _sheetController.dispose();
     super.dispose();
   }
 
-  void _centerTown() {
-    _cameraAnim?.dispose();
-    _cameraAnim = null;
-    _runCameraAnimation(_quetameCenter, _defaultMapZoom);
+  String _resolveInitialFilter(String? category) {
+    if (category == null || category == 'Todos') return 'Todos';
+    return category;
   }
 
-  void _removeActiveRoute() {
-    context.read<RouteProvider>().clearActivePlaceRoute();
-  }
-
-  Future<void> _setRouteToSite(_FirestoreSite site) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final locationProvider = context.read<LocationProvider>();
-    final routeProvider = context.read<RouteProvider>();
-
-    await locationProvider.refreshLocationState();
-    final current = locationProvider.currentLocation;
-    if (current == null) {
-      messenger
-        ..clearSnackBars()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text('Activa tu ubicación para fijar la ruta.'),
-          ),
-        );
+  void _onSearchChanged(String value) {
+    _searchDebounce?.cancel();
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      _viewModel.setSearchQuery('');
       return;
     }
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+      _viewModel.setSearchQuery(trimmed);
+    });
+  }
 
-    final destination = LatLng(site.latitud, site.longitud);
-    try {
-      final route = await OsrmRouteService.fetchDrivingRoute(
-        origin: current,
-        destination: destination,
-      );
-      final routePoints = route.isEmpty ? <LatLng>[current, destination] : route;
-      routeProvider.setActivePlaceRoute(routePoints);
-      _animateCameraToInclude(routePoints);
-    } catch (_) {
-      routeProvider.setActivePlaceRoute(<LatLng>[current, destination]);
-      _animateCameraToInclude(<LatLng>[current, destination]);
-      messenger
-        ..clearSnackBars()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text('No se pudo calcular la ruta exacta. Se mostró una línea base.'),
-          ),
-        );
+  void _fitCameraToVisibleEntities() {
+    final filtered = _viewModel.filteredEntities;
+    final points = filtered.map((e) => e.latLng).toList();
+    if (points.isEmpty) {
+      _animatedMove(_quetameCenter, _defaultMapZoom);
+      return;
     }
+    if (points.length == 1) {
+      _animatedMove(points.first, 15.2);
+      return;
+    }
+    _animateCameraToInclude(points);
+  }
+
+  void _onFilterSelected(String filterId) {
+    _viewModel.setFilter(filterId);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _fitCameraToVisibleEntities();
+      _animateSheetTo(_sheetMinSize);
+    });
+  }
+
+  void _onEntitySelected(MapEntity entity) {
+    _searchController.text = entity.name;
+    _viewModel.setSearchQuery(entity.name);
+    _viewModel.selectEntity(entity);
+    _navigation.setNavigationDestination(entity);
+    _animatedMove(entity.latLng, 16.2);
+    _animateSheetTo(_sheetDetailSize);
+  }
+
+  void _clearSelection() {
+    _viewModel.clearSelection();
+    _navigation.setNavigationDestination(null);
+    _animateSheetTo(_sheetMinSize);
+  }
+
+  Future<void> _finishActiveRoute({bool askConfirmation = true}) async {
+    final routeProvider = context.read<RouteProvider>();
+    if (!routeProvider.hasActivePlaceRoute) return;
+
+    if (askConfirmation) {
+      final shouldFinish = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Finalizar ruta'),
+          content: const Text(
+            'Se eliminará el recorrido actual y la guía activa del mapa.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Finalizar'),
+            ),
+          ],
+        ),
+      );
+      if (shouldFinish != true) return;
+    }
+
+    routeProvider.clearActivePlaceRoute();
+    routeProvider.clearSelectedRoute();
+    _navigation.setNavigationDestination(null);
+    _clearSelection();
+
+    if (!mounted || !askConfirmation) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Ruta finalizada correctamente.')),
+    );
+  }
+
+  Future<void> _animateSheetTo(double size) async {
+    if (!_sheetController.isAttached) return;
+    await _sheetController.animateTo(
+      size,
+      duration: const Duration(milliseconds: 380),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  void _animatedMove(LatLng target, double zoom, {double? rotation}) {
+    _cameraAnimator.animatedMapMove(
+      target: target,
+      zoom: zoom,
+      rotation: rotation,
+    );
   }
 
   void _animateCameraToInclude(List<LatLng> points) {
@@ -99,232 +247,109 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
     final bounds = LatLngBounds.fromPoints(points);
     final cam = _mapController.camera;
+    final topPad = MediaQuery.of(context).padding.top +
+        _searchOverlayHeight +
+        72;
     final targetCam = CameraFit.bounds(
       bounds: bounds,
-      padding: const EdgeInsets.fromLTRB(44, 100, 44, 140),
+      padding: EdgeInsets.fromLTRB(48, topPad, 48, 220),
     ).fit(cam);
 
-    _runCameraAnimation(targetCam.center, targetCam.zoom);
+    _animatedMove(targetCam.center, targetCam.zoom);
   }
 
-  List<_FirestoreSite> _sitesForFilter(List<_FirestoreSite> all) {
-    if (selectedCategory == 'Todos') return all;
-    return all.where((p) => p.category == selectedCategory).toList();
-  }
-
-  void _fitCameraToFilteredSites(String category, List<_FirestoreSite> all) {
-    final filtered = category == 'Todos'
-        ? all
-        : all.where((p) => p.category == category).toList();
-    final points =
-        filtered.map((p) => LatLng(p.latitud, p.longitud)).toList();
-    if (points.isEmpty) {
-      _runCameraAnimation(_quetameCenter, _defaultMapZoom);
-      return;
-    }
-    if (points.length == 1) {
-      _runCameraAnimation(points.first, 15.2);
-      return;
-    }
-    _animateCameraToInclude(points);
-  }
-
-  void _onCategorySelected(String category, List<_FirestoreSite> allSites) {
-    setState(() => selectedCategory = category);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _fitCameraToFilteredSites(category, allSites);
-    });
-  }
-
-  void _runCameraAnimation(LatLng endCenter, double endZoom) {
-    if (!mounted) return;
-
-    final cam = _mapController.camera;
-    _cameraAnim?.dispose();
-    _cameraAnim = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-
-    final startCenter = cam.center;
-    final startZoom = cam.zoom;
-
-    void tick() {
-      final v = Curves.easeInOutCubic.transform(_cameraAnim!.value);
-      final lat =
-          startCenter.latitude + (endCenter.latitude - startCenter.latitude) * v;
-      final lng = startCenter.longitude +
-          (endCenter.longitude - startCenter.longitude) * v;
-      final zoom = startZoom + (endZoom - startZoom) * v;
-      _mapController.move(LatLng(lat, lng), zoom);
-    }
-
-    _cameraAnim!.addListener(tick);
-    _cameraAnim!.forward().whenComplete(() {
-      if (_cameraAnim != null) {
-        _cameraAnim!.removeListener(tick);
-        _cameraAnim!.dispose();
-        _cameraAnim = null;
-      }
-    });
-  }
-
-  void _showSiteBottomSheet(_FirestoreSite site) {
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (_) {
-        final textTheme = Theme.of(context).textTheme;
-        final scheme = Theme.of(context).colorScheme;
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 150,
-                    child: Image.network(
-                      site.imagenUrl,
-                      fit: BoxFit.cover,
-                      loadingBuilder: (context, child, progress) {
-                        if (progress == null) return child;
-                        return Container(
-                          color: Colors.grey.shade300,
-                          alignment: Alignment.center,
-                          child: const CircularProgressIndicator(strokeWidth: 2.2),
-                        );
-                      },
-                      errorBuilder: (_, _, _) => Container(
-                        color: scheme.surfaceContainerHighest,
-                        alignment: Alignment.center,
-                        child: Icon(
-                          Icons.image_not_supported_outlined,
-                          color: scheme.onSurfaceVariant,
-                          size: 34,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  site.nombre,
-                  style: textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  site.descripcion,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          _setRouteToSite(site);
-                        },
-                        icon: const Icon(Icons.directions),
-                        label: const Text('Fijar Ruta'),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => PlaceDetailScreen(
-                                place: site.toPlaceModel(),
-                              ),
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.goldPrimary,
-                          foregroundColor: Colors.white,
-                        ),
-                        icon: const Icon(Icons.open_in_new_rounded),
-                        label: const Text('Ver Detalles'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _handleMyLocationPressed() async {
+  Future<void> _setRouteToEntity(MapEntity entity) async {
+    final messenger = ScaffoldMessenger.of(context);
     final locationProvider = context.read<LocationProvider>();
-    await locationProvider.refreshLocationState();
+    final routeProvider = context.read<RouteProvider>();
 
+    await locationProvider.refreshLocationState();
+    final current = locationProvider.currentLocation;
+    if (current == null) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Activa tu ubicación para fijar la ruta.'),
+        ),
+      );
+      return;
+    }
+
+    _navigation.setNavigationDestination(entity);
+
+    final destination = entity.latLng;
+    try {
+      final route = await OsrmRouteService.fetchDrivingRoute(
+        origin: current,
+        destination: destination,
+      );
+      final routePoints =
+          route.isEmpty ? <LatLng>[current, destination] : route;
+      routeProvider.setActivePlaceRoute(routePoints);
+      _animateCameraToInclude(routePoints);
+    } catch (_) {
+      routeProvider.setActivePlaceRoute(<LatLng>[current, destination]);
+      _animateCameraToInclude(<LatLng>[current, destination]);
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No se pudo calcular la ruta exacta. Se mostró una línea base.',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _ensureLocationReady() async {
+    final locationProvider = context.read<LocationProvider>();
+    final scheme = Theme.of(context).colorScheme;
+    final messenger = ScaffoldMessenger.of(context);
+
+    await locationProvider.refreshLocationState();
     if (!mounted) return;
 
     if (!locationProvider.isLocationServiceEnabled) {
-      ScaffoldMessenger.of(context)
-        ..clearSnackBars()
-        ..showSnackBar(
-          SnackBar(
-            content: const Text('El GPS está apagado'),
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            action: SnackBarAction(
-              label: 'Encender',
-              textColor: Colors.white,
-              onPressed: Geolocator.openLocationSettings,
-            ),
+      messenger.showSnackBar(
+        SnackBar(
+          content: const Text('El GPS está apagado'),
+          backgroundColor: scheme.primary,
+          action: SnackBarAction(
+            label: 'Encender',
+            onPressed: Geolocator.openLocationSettings,
           ),
-        );
+        ),
+      );
       return;
     }
 
     if (locationProvider.permission == LocationPermission.denied) {
       await locationProvider.requestPermissionAgain();
-      if (!mounted) return;
     }
 
     if (locationProvider.permission == LocationPermission.deniedForever) {
-      ScaffoldMessenger.of(context)
-        ..clearSnackBars()
-        ..showSnackBar(
-          SnackBar(
-            content: const Text(
-              'Necesitamos permisos para guiarte en los senderos.',
-            ),
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            action: SnackBarAction(
-              label: 'Abrir Ajustes',
-              textColor: Colors.white,
-              onPressed: Geolocator.openAppSettings,
-            ),
+      messenger.showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Necesitamos permisos para guiarte en los senderos.',
           ),
-        );
-      return;
+          backgroundColor: scheme.primary,
+          action: SnackBarAction(
+            label: 'Abrir Ajustes',
+            onPressed: Geolocator.openAppSettings,
+          ),
+        ),
+      );
     }
+  }
 
-    final current = locationProvider.positionNotifier.value;
-    if (current != null) {
-      _mapController.move(current, 15.5);
-    }
+  void _openPlaceDetails(MapEntity entity) {
+    final place = entity.toPlaceModel();
+    if (place == null) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PlaceDetailScreen(place: place),
+      ),
+    );
   }
 
   @override
@@ -333,18 +358,25 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     final routeProvider = context.watch<RouteProvider>();
     final geoRoutes = routeProvider.visibleGeoRoutesOnMainMap;
     final hasActivePlaceRoute = routeProvider.hasActivePlaceRoute;
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+    final theme = Theme.of(context);
 
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: FirebaseFirestore.instance.collection('sitios').snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return Scaffold(
+            backgroundColor: theme.scaffoldBackgroundColor,
+            body: const Center(
+              child: CircularProgressIndicator(color: AppColors.goldPrimary),
+            ),
+          );
         }
 
         if (snapshot.hasError) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
+          return Scaffold(
+            backgroundColor: theme.scaffoldBackgroundColor,
+            body: Center(
               child: Text(
                 'Error al cargar sitios: ${snapshot.error}',
                 textAlign: TextAlign.center,
@@ -353,294 +385,253 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           );
         }
 
-        final sites = snapshot.data?.docs
-                .map((doc) => _FirestoreSite.fromMap(doc.id, doc.data()))
-                .whereType<_FirestoreSite>()
+        final firestoreSites = snapshot.data?.docs
+                .map((doc) => FirestoreMapSite.fromMap(doc.id, doc.data()))
+                .whereType<FirestoreMapSite>()
                 .toList() ??
-            <_FirestoreSite>[];
-        final filteredSites = _sitesForFilter(sites);
+            <FirestoreMapSite>[];
 
-        final siteMarkers = filteredSites.map(
-          (site) => Marker(
-            width: 36,
-            height: 36,
-            point: LatLng(site.latitud, site.longitud),
-            child: GestureDetector(
-              onTap: () => _showSiteBottomSheet(site),
-              child: _MapPin(
-                color: PlaceCategory.pinColorForLabel(site.category),
-                categoryLabel: site.category,
-              ),
-            ),
-          ),
+        _viewModel.setEntities(
+          MapEntityCatalog.buildFromFirestoreSites(firestoreSites),
         );
 
-        return Stack(
-          children: [
-            RepaintBoundary(
-              child: FlutterMap(
-                mapController: _mapController,
-                options: const MapOptions(
-                  initialCenter: _quetameCenter,
-                  initialZoom: _defaultMapZoom,
-                ),
-                children: [
-                  TileLayer(
-                    urlTemplate:
-                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    userAgentPackageName: 'com.quetame_turismo.app',
-                  ),
-                  if (geoRoutes.isNotEmpty)
-                    PolylineLayer(
-                      polylines: [
-                        for (final path in geoRoutes)
-                          Polyline(
-                            points: path,
-                            strokeWidth: 4.0,
-                            color: Colors.redAccent,
-                          ),
-                      ],
-                    ),
-                  MarkerLayer(markers: siteMarkers.toList()),
-                  UserLocationMarkerLayer(
-                    positionListenable: locationProvider.positionNotifier,
-                  ),
-                ],
-              ),
-            ),
-        Positioned(
-          left: 16,
-          right: 16,
-          top: MediaQuery.of(context).padding.top + 8,
-          child: SizedBox(
-            height: 44,
-            child: CategoriesLegendCard(
-              selectedCategory: selectedCategory,
-              onCategorySelected: (category) =>
-                  _onCategorySelected(category, sites),
-            ),
-          ),
-        ),
-        Positioned(
-          right: 16,
-          bottom: 24,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.end,
+        return Scaffold(
+          backgroundColor: theme.scaffoldBackgroundColor,
+          body: Stack(
             children: [
-              FloatingActionButton.small(
-                heroTag: 'map_center_town',
-                onPressed: _centerTown,
-                tooltip: 'Centrar Pueblo',
-                child: const Icon(Icons.location_city),
-              ),
-              const SizedBox(height: 12),
-              if (hasActivePlaceRoute) ...[
-                FloatingActionButton.small(
-                  heroTag: 'map_clear_route',
-                  onPressed: _removeActiveRoute,
-                  tooltip: 'Eliminar ruta',
-                  child: const Icon(Icons.alt_route),
+              Positioned.fill(
+                child: MapCanvas(
+                  mapController: _mapController,
+                  viewModel: _viewModel,
+                  gpsSnapshot: locationProvider.gpsSnapshotNotifier,
+                  geoRoutes: geoRoutes,
+                  navigationController: _navigation,
+                  onEntityTap: _onEntitySelected,
                 ),
-                const SizedBox(height: 12),
-              ],
-              FloatingActionButton(
-                heroTag: 'map_my_location',
-                onPressed: _handleMyLocationPressed,
-                child: const Icon(Icons.my_location),
+              ),
+              Positioned(
+                top: 0,
+                left: 12,
+                right: 12,
+                child: SafeArea(
+                  bottom: false,
+                  child: Container(
+                    key: _searchOverlayKey,
+                    child: MapSearchOverlay(
+                      viewModel: _viewModel,
+                      searchController: _searchController,
+                      onSearchChanged: _onSearchChanged,
+                      onSuggestionSelected: _onEntitySelected,
+                      categoryBar: ListenableBuilder(
+                        listenable: _viewModel,
+                        builder: (context, _) => MapCategoryFilterBar(
+                          selectedFilterId: _viewModel.selectedFilterId,
+                          onFilterSelected: _onFilterSelected,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: MediaQuery.of(context).padding.top +
+                    _searchOverlayHeight +
+                    8,
+                left: 16,
+                right: 16,
+                child: AnimatedBuilder(
+                  animation: _hudFadeController,
+                  builder: (context, child) => IgnorePointer(
+                    ignoring: _hudFadeController.value < 0.05,
+                    child: Opacity(
+                      opacity: _hudFadeController.value,
+                      child: child,
+                    ),
+                  ),
+                  child: ListenableBuilder(
+                    listenable: _navigation,
+                    builder: (context, _) {
+                      final showHud =
+                          _navigation.followMode == MapCameraFollowMode.tracking ||
+                              hasActivePlaceRoute;
+                      if (!showHud) return const SizedBox.shrink();
+                      return const MapNavigationHud();
+                    },
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return ListenableBuilder(
+                      listenable: _sheetController,
+                      builder: (context, _) {
+                        final sheetFraction = _sheetController.isAttached
+                            ? _sheetController.size
+                            : _sheetMinSize;
+                        final sheetTopFromBottom =
+                            constraints.maxHeight * sheetFraction;
+                        final controlsBottom =
+                            sheetTopFromBottom + bottomInset + _floatingControlsGap;
+                        final controlsTop = MediaQuery.of(context).padding.top +
+                            _searchOverlayHeight +
+                            _floatingControlsGap;
+
+                        return Padding(
+                          padding: EdgeInsets.only(
+                            top: controlsTop,
+                            right: 16,
+                            bottom: controlsBottom,
+                          ),
+                          child: Align(
+                            alignment: Alignment.bottomRight,
+                            child: ListenableBuilder(
+                              listenable: _navigation,
+                              builder: (context, _) {
+                                final isTracking = _navigation.followMode ==
+                                    MapCameraFollowMode.tracking;
+                                return Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    if (_navigation.needsRecenter)
+                                      Padding(
+                                        padding: const EdgeInsets.only(bottom: 10),
+                                        child: FilledButton.icon(
+                                          onPressed: _navigation.recenterOnUser,
+                                          icon: const Icon(
+                                            Icons.gps_fixed_rounded,
+                                            size: 18,
+                                          ),
+                                          label: const Text('Re-centrar'),
+                                          style: FilledButton.styleFrom(
+                                            backgroundColor: AppColors.goldPrimary,
+                                            foregroundColor:
+                                                theme.colorScheme.onPrimary,
+                                          ),
+                                        ),
+                                      ),
+                                    MapGlassIconButton(
+                                      icon: _navigation.compassMode
+                                          ? Icons.explore_rounded
+                                          : Icons.explore_outlined,
+                                      tooltip: 'Modo brújula',
+                                      compact: true,
+                                      onPressed: () async {
+                                        await _ensureLocationReady();
+                                        await _navigation.toggleCompassMode();
+                                      },
+                                    ),
+                                    const SizedBox(height: 10),
+                                    MapGlassIconButton(
+                                      icon: isTracking
+                                          ? Icons.navigation_rounded
+                                          : Icons.navigation_outlined,
+                                      tooltip: isTracking
+                                          ? 'Modo seguimiento activo'
+                                          : 'Activar seguimiento',
+                                      compact: true,
+                                      onPressed: () async {
+                                        await _ensureLocationReady();
+                                        _navigation.toggleFollowMode();
+                                      },
+                                    ),
+                                    const SizedBox(height: 10),
+                                    MapGlassIconButton(
+                                      icon: Icons.location_city_rounded,
+                                      tooltip: 'Centrar pueblo',
+                                      compact: true,
+                                      onPressed: () =>
+                                          _animatedMove(_quetameCenter, _defaultMapZoom),
+                                    ),
+                                    if (hasActivePlaceRoute) ...[
+                                      const SizedBox(height: 10),
+                                      MapGlassIconButton(
+                                        icon: Icons.close_rounded,
+                                        tooltip: 'Finalizar ruta',
+                                        compact: true,
+                                        onPressed: _finishActiveRoute,
+                                      ),
+                                    ],
+                                  ],
+                                );
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+              if (hasActivePlaceRoute)
+                Positioned(
+                  left: 16,
+                  right: 16,
+                  bottom: 12 + bottomInset,
+                  child: SafeArea(
+                    top: false,
+                    child: FilledButton.icon(
+                      onPressed: _finishActiveRoute,
+                      icon: const Icon(Icons.flag_rounded, size: 18),
+                      label: const Text('Finalizar ruta'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.black.withValues(alpha: 0.82),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                ),
+              ListenableBuilder(
+                listenable: _viewModel,
+                builder: (context, _) {
+                  final filtered = _viewModel.filteredEntities;
+                  MapEntity? selected = _viewModel.selectedEntity;
+                  if (selected != null &&
+                      !filtered.any((e) => e.id == selected!.id)) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (!mounted) return;
+                      _clearSelection();
+                    });
+                    selected = null;
+                  }
+
+                  final active = selected;
+
+                  return DraggableScrollableSheet(
+                    controller: _sheetController,
+                    initialChildSize: _sheetMinSize,
+                    minChildSize: _sheetMinSize,
+                    maxChildSize: _sheetMaxSize,
+                    snap: true,
+                    snapSizes: const [
+                      _sheetMinSize,
+                      _sheetDetailSize,
+                      _sheetMaxSize,
+                    ],
+                    builder: (context, scrollController) {
+                      return MapSitesPanel(
+                        scrollController: scrollController,
+                        entities: filtered,
+                        selectedEntity: active,
+                        onEntitySelected: _onEntitySelected,
+                        onGoToPlace: active == null
+                            ? () {}
+                            : () => _setRouteToEntity(active),
+                        onViewDetails: active == null
+                            ? () {}
+                            : () => _openPlaceDetails(active),
+                        onClearSelection: _clearSelection,
+                      );
+                    },
+                  );
+                },
               ),
             ],
           ),
-        ),
-          ],
         );
       },
-    );
-  }
-}
-
-class _FirestoreSite {
-  final String id;
-  final String nombre;
-  final String descripcion;
-  final String historia;
-  final String horarios;
-  final String horaApertura;
-  final String horaCierre;
-  final String telefono;
-  final String menuUrl;
-  final String categoriaRaw;
-  final String category;
-  final String imagenUrl;
-  final double latitud;
-  final double longitud;
-
-  const _FirestoreSite({
-    required this.id,
-    required this.nombre,
-    required this.descripcion,
-    required this.historia,
-    required this.horarios,
-    required this.horaApertura,
-    required this.horaCierre,
-    required this.telefono,
-    required this.menuUrl,
-    required this.categoriaRaw,
-    required this.category,
-    required this.imagenUrl,
-    required this.latitud,
-    required this.longitud,
-  });
-
-  static _FirestoreSite? fromMap(String docId, Map<String, dynamic> data) {
-    final nombre = (data['nombre'] ?? '').toString().trim();
-    final descripcion = (data['descripcion'] ?? '').toString().trim();
-    final historia = (data['historia'] ?? '').toString().trim();
-    final horarios = (data['horarios'] ?? '').toString().trim();
-    final horaApertura = (data['hora_apertura'] ?? '').toString().trim();
-    final horaCierre = (data['hora_cierre'] ?? '').toString().trim();
-    final telefono =
-        (data['telefono'] ?? data['phone'] ?? '').toString().trim();
-    final menuUrl = (data['menu_url'] ?? '').toString().trim();
-    final categoriaRaw = (data['categoria'] ?? '').toString();
-    final imagenUrl = (data['imagen_url'] ?? '').toString().trim();
-    final lat = data['latitud'];
-    final lng = data['longitud'];
-
-    if (nombre.isEmpty || lat == null || lng == null) {
-      return null;
-    }
-
-    final latitud = lat is num ? lat.toDouble() : double.tryParse('$lat');
-    final longitud = lng is num ? lng.toDouble() : double.tryParse('$lng');
-    if (latitud == null || longitud == null) {
-      return null;
-    }
-
-    return _FirestoreSite(
-      id: docId,
-      nombre: nombre,
-      descripcion: descripcion,
-      historia: historia,
-      horarios: horarios,
-      horaApertura: horaApertura,
-      horaCierre: horaCierre,
-      telefono: telefono,
-      menuUrl: menuUrl,
-      categoriaRaw: categoriaRaw,
-      category: _normalizeCategory(categoriaRaw),
-      imagenUrl: imagenUrl,
-      latitud: latitud,
-      longitud: longitud,
-    );
-  }
-
-  PlaceModel toPlaceModel() {
-    return PlaceModel(
-      id: id,
-      name: nombre,
-      description: descripcion,
-      category: _toPlaceCategory(category),
-      rawCategory: categoriaRaw,
-      imageUrl: imagenUrl.isEmpty
-          ? 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1200&q=60'
-          : imagenUrl,
-      latitude: latitud,
-      longitude: longitud,
-      phone: telefono.isEmpty ? null : telefono,
-      historia: historia,
-      horarios: horarios,
-      horaApertura: horaApertura.isEmpty ? null : horaApertura,
-      horaCierre: horaCierre.isEmpty ? null : horaCierre,
-      menuUrl: menuUrl.isEmpty ? null : menuUrl,
-    );
-  }
-}
-
-String _normalizeCategory(String raw) {
-  final value = raw.trim().toLowerCase();
-  switch (value) {
-    case 'historia':
-      return 'Historia';
-    case 'naturaleza':
-      return 'Naturaleza';
-    case 'mirador':
-      return 'Mirador';
-    case 'gastronomia':
-    case 'gastronomía':
-    case 'restaurante':
-    case 'comida':
-      return 'Gastronomía';
-    default:
-      return 'Naturaleza';
-  }
-}
-
-PlaceCategory _toPlaceCategory(String category) {
-  switch (category) {
-    case 'Historia':
-      return PlaceCategory.historia;
-    case 'Mirador':
-      return PlaceCategory.mirador;
-    case 'Gastronomía':
-      return PlaceCategory.gastronomia;
-    case 'Naturaleza':
-    default:
-      return PlaceCategory.naturaleza;
-  }
-}
-
-class _MapPin extends StatelessWidget {
-  final Color color;
-  final String categoryLabel;
-
-  const _MapPin({
-    required this.color,
-    required this.categoryLabel,
-  });
-
-  IconData _iconForCategory() {
-    switch (categoryLabel) {
-      case 'Historia':
-        return Icons.account_balance;
-      case 'Mirador':
-        return Icons.visibility;
-      case 'Gastronomía':
-        return Icons.restaurant;
-      case 'Naturaleza':
-        return Icons.terrain;
-      default:
-        return Icons.place;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 36,
-      height: 36,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 2.5),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.45),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-          const BoxShadow(
-            color: Color(0x26000000),
-            blurRadius: 4,
-            offset: Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Icon(
-        _iconForCategory(),
-        color: Colors.white,
-        size: 18,
-      ),
     );
   }
 }

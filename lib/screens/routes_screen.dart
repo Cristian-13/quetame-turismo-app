@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:quetame_turismo/models/trail_route.dart';
+import 'package:quetame_turismo/providers/location_provider.dart';
 import 'package:quetame_turismo/providers/route_provider.dart';
 import 'package:quetame_turismo/screens/route_navigation_screen.dart';
 import 'package:quetame_turismo/theme/app_colors.dart';
@@ -14,6 +16,11 @@ class RoutesScreen extends StatefulWidget {
 }
 
 class _RoutesScreenState extends State<RoutesScreen> {
+  static const Map<String, LatLng> _routeStarts = {
+    'la_torre': LatLng(4.3303, -73.8647),
+    'paramo_burras': LatLng(4.3160, -73.8340),
+  };
+
   static const String _downloadedRoutesKey = 'downloaded_routes_ids';
   final Set<String> _downloadedRouteIds = <String>{};
   final Set<String> _downloadingRouteIds = <String>{};
@@ -33,11 +40,10 @@ class _RoutesScreenState extends State<RoutesScreen> {
 
     final prefs = await SharedPreferences.getInstance();
     final storedIds = prefs.getStringList(_downloadedRoutesKey);
-    final downloadedIds = storedIds == null ? defaultDownloadedIds : storedIds.toSet();
+    final downloadedIds =
+        storedIds == null ? defaultDownloadedIds : storedIds.toSet();
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     setState(() {
       _downloadedRouteIds
@@ -47,13 +53,12 @@ class _RoutesScreenState extends State<RoutesScreen> {
   }
 
   Future<void> _downloadRoute(TrailRoute route) async {
-    if (_downloadedRouteIds.contains(route.id) || _downloadingRouteIds.contains(route.id)) {
+    if (_downloadedRouteIds.contains(route.id) ||
+        _downloadingRouteIds.contains(route.id)) {
       return;
     }
 
-    setState(() {
-      _downloadingRouteIds.add(route.id);
-    });
+    setState(() => _downloadingRouteIds.add(route.id));
 
     await Future.delayed(const Duration(seconds: 3));
 
@@ -61,9 +66,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
     final updatedIds = <String>{..._downloadedRouteIds, route.id};
     await prefs.setStringList(_downloadedRoutesKey, updatedIds.toList());
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     setState(() {
       _downloadingRouteIds.remove(route.id);
@@ -76,7 +79,8 @@ class _RoutesScreenState extends State<RoutesScreen> {
   }
 
   Future<void> _removeDownloadedRoute(TrailRoute route) async {
-    if (!_downloadedRouteIds.contains(route.id) || _downloadingRouteIds.contains(route.id)) {
+    if (!_downloadedRouteIds.contains(route.id) ||
+        _downloadingRouteIds.contains(route.id)) {
       return;
     }
 
@@ -84,13 +88,9 @@ class _RoutesScreenState extends State<RoutesScreen> {
     final updatedIds = <String>{..._downloadedRouteIds}..remove(route.id);
     await prefs.setStringList(_downloadedRoutesKey, updatedIds.toList());
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
-    setState(() {
-      _downloadedRouteIds.remove(route.id);
-    });
+    setState(() => _downloadedRouteIds.remove(route.id));
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Descarga eliminada del dispositivo')),
@@ -99,57 +99,64 @@ class _RoutesScreenState extends State<RoutesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final routeProvider = context.watch<RouteProvider>();
-    final routes = routeProvider.routes;
+    final routes = context.watch<RouteProvider>().routes;
+    final gps = context.watch<LocationProvider>().gpsSnapshotNotifier.value;
+    final currentPosition = gps?.position;
+    final speedKmh = (gps?.speedKmh ?? 0) < 2 ? 5.0 : (gps?.speedKmh ?? 0);
 
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            const separatorHeight = 14.0;
-            final count = routes.length;
-
-            final bool shouldDisableScroll = count <= 2;
-            final double computedItemHeight = shouldDisableScroll && count > 0
-                ? ((constraints.maxHeight - (separatorHeight * (count - 1))) / count)
-                : 420.0;
-            final double itemHeight = computedItemHeight.clamp(320.0, 520.0);
-
-            return ListView.separated(
-              physics: shouldDisableScroll
-                  ? const NeverScrollableScrollPhysics()
-                  : const AlwaysScrollableScrollPhysics(),
-              itemCount: count,
-              separatorBuilder: (context, index) =>
-                  const SizedBox(height: separatorHeight),
-              itemBuilder: (context, index) {
-                final route = routes[index];
-                return SizedBox(
-                  height: shouldDisableScroll ? itemHeight : 420,
-                  child: RouteCard(
-                    route: route,
-                    downloaded: _downloadedRouteIds.contains(route.id),
-                    isDownloading: _downloadingRouteIds.contains(route.id),
-                    onDownloadPressed: () => _downloadRoute(route),
-                    onRemoveDownloadPressed: () => _removeDownloadedRoute(route),
-                    onStartRoutePressed: () {
-                      routeProvider.selectRouteForMap(route.id);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => RouteNavigationScreen(route: route),
-                        ),
-                      );
-                    },
-                  ),
-                );
-              },
-            );
-          },
-        ),
-      ),
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+      itemCount: routes.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 14),
+      itemBuilder: (context, index) {
+        final route = routes[index];
+        final startPoint = _routeStarts[route.id] ??
+            (route.pathPoints.isNotEmpty ? route.pathPoints.first : null);
+        final distanceToStartKm = _distanceToStartKm(currentPosition, startPoint);
+        final etaMinutes = distanceToStartKm == null
+            ? null
+            : ((distanceToStartKm / speedKmh) * 60).round();
+        final trailLengthKm = _routeLengthKm(route.pathPoints);
+        return SizedBox(
+          height: 420,
+          child: RouteCard(
+            route: route,
+            downloaded: _downloadedRouteIds.contains(route.id),
+            isDownloading: _downloadingRouteIds.contains(route.id),
+            distanceToStartKm: distanceToStartKm,
+            etaMinutes: etaMinutes,
+            trailLengthKm: trailLengthKm,
+            onDownloadPressed: () => _downloadRoute(route),
+            onRemoveDownloadPressed: () => _removeDownloadedRoute(route),
+            onStartRoutePressed: () {
+              context.read<RouteProvider>().selectRouteForMap(route.id);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => RouteNavigationScreen(route: route),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
+  }
+
+  double? _distanceToStartKm(LatLng? current, LatLng? start) {
+    if (current == null || start == null) return null;
+    final meters = const Distance().as(LengthUnit.Meter, current, start);
+    return meters / 1000;
+  }
+
+  double _routeLengthKm(List<LatLng> points) {
+    if (points.length < 2) return 0;
+    final distance = const Distance();
+    var meters = 0.0;
+    for (var i = 0; i < points.length - 1; i++) {
+      meters += distance.as(LengthUnit.Meter, points[i], points[i + 1]);
+    }
+    return meters / 1000;
   }
 }
 
@@ -157,6 +164,9 @@ class RouteCard extends StatelessWidget {
   final TrailRoute route;
   final bool downloaded;
   final bool isDownloading;
+  final double? distanceToStartKm;
+  final int? etaMinutes;
+  final double trailLengthKm;
   final VoidCallback onDownloadPressed;
   final VoidCallback onRemoveDownloadPressed;
   final VoidCallback onStartRoutePressed;
@@ -166,214 +176,253 @@ class RouteCard extends StatelessWidget {
     required this.route,
     required this.downloaded,
     required this.isDownloading,
+    required this.distanceToStartKm,
+    required this.etaMinutes,
+    required this.trailLengthKm,
     required this.onDownloadPressed,
     required this.onRemoveDownloadPressed,
     required this.onStartRoutePressed,
   });
 
+  static const Color _textOnImage = Color(0xFFFFFFFF);
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final textTheme = theme.textTheme;
-    final downloadActionColor = downloaded
-        ? AppColors.goldPrimary
-        : colorScheme.onSurface;
-    final outlineColor = colorScheme.outlineVariant;
+    final textTheme = Theme.of(context).textTheme;
+    final imageUrl = _RouteCoverImage.imageUrlFor(route);
 
-    final isDark = theme.brightness == Brightness.dark;
-    final cardBorder = BorderSide(
-      color: isDark ? AppColors.borderDark : AppColors.borderLight,
-      width: 1,
-    );
-
-    return Card(
-      margin: EdgeInsets.zero,
-      elevation: theme.cardTheme.elevation ?? 4,
-      shadowColor: theme.cardTheme.shadowColor,
-      color: theme.cardTheme.color,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
-        side: cardBorder,
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                height: 180,
-                width: double.infinity,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    _RouteCoverImage(route: route),
-                    Positioned(
-                      top: 10,
-                      left: 10,
-                      child: _StatusChip(downloaded: downloaded),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: Material(
+        color: Colors.transparent,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            _ImmersiveNetworkImage(
+              imageUrl: imageUrl,
+              fallbackIcon: Icons.landscape_outlined,
+              placeholderColor: AppColors.goldPrimary,
+            ),
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    Colors.black87,
+                    Colors.transparent,
+                  ],
+                  stops: [0.0, 0.65],
+                ),
+              ),
+            ),
+            Positioned(
+              top: 12,
+              left: 12,
+              right: 12,
+              child: Row(
+                children: [
+                  _StatusChip(downloaded: downloaded),
+                  const Spacer(),
+                  Chip(
+                    label: Text(
+                      route.difficulty,
+                      style: TextStyle(
+                        color: route.difficultyTextColor,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
                     ),
-                    Positioned(
-                      top: 10,
-                      right: 10,
-                      child: Chip(
-                        label: Text(
-                          route.difficulty,
-                          style: TextStyle(
-                            color: route.difficultyTextColor,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12,
+                    backgroundColor: route.difficultyColor,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
+              ),
+            ),
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 16,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    route.title,
+                    style: textTheme.titleLarge?.copyWith(
+                      color: _textOnImage,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 22,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _GlassMetricChip(
+                          icon: Icons.near_me_rounded,
+                          text: distanceToStartKm == null
+                              ? 'A — km de ti'
+                              : 'A ${distanceToStartKm!.toStringAsFixed(1)} km de ti',
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _GlassMetricChip(
+                          icon: Icons.timer_outlined,
+                          text: etaMinutes == null
+                              ? 'Llegada en — min'
+                              : 'Llegada en $etaMinutes min',
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _GlassMetricChip(
+                          icon: Icons.route_rounded,
+                          text: '${trailLengthKm.toStringAsFixed(1)} km sendero',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: isDownloading
+                              ? null
+                              : (downloaded
+                                  ? onRemoveDownloadPressed
+                                  : onDownloadPressed),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: _textOnImage,
+                            side: BorderSide(
+                              color: _textOnImage.withValues(alpha: 0.65),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (isDownloading)
+                                const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: _textOnImage,
+                                  ),
+                                )
+                              else
+                                Icon(
+                                  downloaded
+                                      ? Icons.delete_outline_rounded
+                                      : Icons.download_for_offline_outlined,
+                                  size: 18,
+                                  color: _textOnImage,
+                                ),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  downloaded
+                                      ? 'Eliminar'
+                                      : (isDownloading
+                                          ? 'Descargando...'
+                                          : 'Descargar'),
+                                  style: const TextStyle(
+                                    color: _textOnImage,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        backgroundColor: route.difficultyColor,
-                        visualDensity: VisualDensity.compact,
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: Container(
-                  color: theme.cardTheme.color ?? AppColors.cardSurface,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            route.title,
-                            style: textTheme.titleLarge?.copyWith(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              color: colorScheme.onSurface,
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: onStartRoutePressed,
+                          icon: const Icon(Icons.near_me_rounded, size: 18),
+                          label: const Text('Iniciar'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.goldPrimary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 6),
-                          Text(
-                            route.description,
-                            style: textTheme.bodyMedium?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
-                              fontSize: 13.5,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 10),
-                          Wrap(
-                            spacing: 12,
-                            runSpacing: 6,
-                            children: [
-                              _StatItem(
-                                icon: Icons.schedule_outlined,
-                                value: route.duration,
-                              ),
-                              _StatItem(
-                                icon: Icons.terrain_outlined,
-                                value: route.difficulty,
-                              ),
-                              _StatItem(
-                                icon: Icons.place_outlined,
-                                value: route.distance,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton(
-                                  onPressed: isDownloading
-                                      ? null
-                                      : (downloaded
-                                          ? onRemoveDownloadPressed
-                                          : onDownloadPressed),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: downloaded
-                                        ? Colors.redAccent
-                                        : downloadActionColor,
-                                    side: BorderSide(
-                                      color: downloaded
-                                          ? Colors.redAccent
-                                          : outlineColor,
-                                    ),
-                                    padding: const EdgeInsets.symmetric(vertical: 11),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      if (isDownloading)
-                                        const SizedBox(
-                                          width: 16,
-                                          height: 16,
-                                          child: CircularProgressIndicator(strokeWidth: 2),
-                                        )
-                                      else
-                                        Icon(
-                                          downloaded
-                                              ? Icons.delete_outline_rounded
-                                              : Icons.download_for_offline_outlined,
-                                          size: 18,
-                                          color: downloaded
-                                              ? Colors.redAccent
-                                              : null,
-                                        ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        downloaded
-                                            ? 'Eliminar descarga'
-                                            : (isDownloading
-                                                ? 'Descargando...'
-                                                : 'Descargar'),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  onPressed: onStartRoutePressed,
-                                  icon: const Icon(Icons.near_me_rounded),
-                                  label: const Text('Iniciar ruta'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.goldPrimary,
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(vertical: 11),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                ),
+                ],
               ),
-            ],
-          );
-        },
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-/// Imagen de portada por ruta (red) con placeholder esmeralda + spinner.
-class _RouteCoverImage extends StatelessWidget {
-  const _RouteCoverImage({required this.route});
+class _ImmersiveNetworkImage extends StatelessWidget {
+  final String? imageUrl;
+  final IconData fallbackIcon;
+  final Color placeholderColor;
 
-  final TrailRoute route;
+  const _ImmersiveNetworkImage({
+    required this.imageUrl,
+    required this.fallbackIcon,
+    required this.placeholderColor,
+  });
 
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: placeholderColor,
+      child: imageUrl == null
+          ? Center(
+              child: Icon(fallbackIcon, color: Colors.white70, size: 56),
+            )
+          : Image.network(
+              imageUrl!,
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: double.infinity,
+              gaplessPlayback: true,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return ColoredBox(
+                  color: placeholderColor,
+                  child: const Center(
+                    child: SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2.5,
+                      ),
+                    ),
+                  ),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) => Center(
+                child: Icon(fallbackIcon, color: Colors.white70, size: 56),
+              ),
+            ),
+    );
+  }
+}
+
+class _RouteCoverImage {
   static const String _laTorreUrl =
       'https://i.postimg.cc/hP7m0zhF/3a6d20af-5c24-40b5-b96f-14b0399a7781-1.jpg';
   static const String _paramoUrl =
@@ -397,71 +446,39 @@ class _RouteCoverImage extends StatelessWidget {
     }
     return null;
   }
+}
+
+class _GlassMetricChip extends StatelessWidget {
+  const _GlassMetricChip({
+    required this.icon,
+    required this.text,
+  });
+
+  final IconData icon;
+  final String text;
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = imageUrlFor(route);
-
-    return SizedBox(
-      height: 180,
-      width: double.infinity,
-      child: Stack(
-        fit: StackFit.expand,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
+      ),
+      child: Row(
         children: [
-          const ColoredBox(color: AppColors.goldPrimary),
-          if (imageUrl != null)
-            Image.network(
-              imageUrl,
-              height: 180,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              gaplessPlayback: true,
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                return const ColoredBox(
-                  color: AppColors.goldPrimary,
-                  child: Center(
-                    child: SizedBox(
-                      width: 28,
-                      height: 28,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2.5,
-                      ),
-                    ),
-                  ),
-                );
-              },
-              errorBuilder: (context, error, stackTrace) {
-                return const ColoredBox(
-                  color: AppColors.goldPrimary,
-                  child: Center(
-                    child: Icon(
-                      Icons.landscape_outlined,
-                      color: Colors.white70,
-                      size: 48,
-                    ),
-                  ),
-                );
-              },
-            )
-          else
-            const Center(
-              child: Icon(
-                Icons.landscape_outlined,
-                color: Colors.white70,
-                size: 48,
-              ),
-            ),
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.transparent,
-                  Color(0x66000000),
-                ],
+          Icon(icon, size: 14, color: Colors.white),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(
+              text,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 11,
               ),
             ),
           ),
@@ -478,9 +495,8 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final Color bgColor =
-        downloaded ? AppColors.goldPrimary : scheme.onSurfaceVariant;
+    final bgColor =
+        downloaded ? AppColors.goldPrimary : Colors.black54;
     return Chip(
       avatar: Icon(
         downloaded ? Icons.check_circle : Icons.download_outlined,
@@ -500,32 +516,3 @@ class _StatusChip extends StatelessWidget {
     );
   }
 }
-
-class _StatItem extends StatelessWidget {
-  final IconData icon;
-  final String value;
-
-  const _StatItem({required this.icon, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 16, color: colorScheme.onSurfaceVariant),
-        const SizedBox(width: 4),
-        Text(
-          value,
-          style: textTheme.bodySmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-            fontWeight: FontWeight.w600,
-            fontSize: 12,
-          ),
-        ),
-      ],
-    );
-  }
-}
-

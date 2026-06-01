@@ -36,6 +36,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   firebase_core: ^4.6.0
   geolocator: ^14.0.2
+  flutter_compass: ^0.8.1
   flutter_map: ^8.2.2
   provider: ^6.1.5+1
   latlong2: ^0.9.1
@@ -52,6 +53,7 @@ dependencies:
   http: ^1.6.0
   add_2_calendar: ^3.0.1
   google_fonts: ^8.1.0
+  vector_math: ^2.2.0
 
 dev_dependencies:
   flutter_test:
@@ -63,6 +65,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.3
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -80,6 +83,20 @@ flutter:
     - quetame_data_seed.json
     - assets/routes/
     - assets/images/
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  web:
+    generate: true
+    image_path: "C:/Users/USER/.cursor/projects/c-DF-31mayo-proyecto-quetyame/assets/c__Users_USER_AppData_Roaming_Cursor_User_workspaceStorage_0e235ddacbffe4349858ae76aa4f4227_images_Icon-192v2-4e47a9e4-df17-4688-b1ab-afdca61b6d4b.png"
+    background_color: "#FDF8EB"
+    theme_color: "#FDF8EB"
+  image_path: "C:/Users/USER/.cursor/projects/c-DF-31mayo-proyecto-quetyame/assets/c__Users_USER_AppData_Roaming_Cursor_User_workspaceStorage_0e235ddacbffe4349858ae76aa4f4227_images_Icon-192v2-4e47a9e4-df17-4688-b1ab-afdca61b6d4b.png"
+  adaptive_icon_background: "#FDF8EB"
+  adaptive_icon_foreground: "C:/Users/USER/.cursor/projects/c-DF-31mayo-proyecto-quetyame/assets/c__Users_USER_AppData_Roaming_Cursor_User_workspaceStorage_0e235ddacbffe4349858ae76aa4f4227_images_Icon-192v2-4e47a9e4-df17-4688-b1ab-afdca61b6d4b.png"
+  adaptive_icon_foreground_inset: 0
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

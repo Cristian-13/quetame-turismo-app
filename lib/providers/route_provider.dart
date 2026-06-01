@@ -65,6 +65,45 @@ class RouteProvider extends ChangeNotifier {
   }
 
   bool get hasActivePlaceRoute => _activePlaceRoute.isNotEmpty;
+  List<LatLng> get activePlaceRoute => List.unmodifiable(_activePlaceRoute);
+
+  void advanceRoute(LatLng currentPosition) {
+    if (_activePlaceRoute.length < 2) return;
+
+    final distance = const Distance();
+    var nearestIndex = 0;
+    var nearestMeters = double.infinity;
+    for (var i = 0; i < _activePlaceRoute.length; i++) {
+      final d = distance.as(
+        LengthUnit.Meter,
+        currentPosition,
+        _activePlaceRoute[i],
+      );
+      if (d < nearestMeters) {
+        nearestMeters = d;
+        nearestIndex = i;
+      }
+    }
+
+    if (nearestIndex <= 0) return;
+
+    final remaining = _activePlaceRoute.sublist(nearestIndex);
+    if (remaining.isEmpty) return;
+
+    final shouldPrependCurrent = distance.as(
+          LengthUnit.Meter,
+          currentPosition,
+          remaining.first,
+        ) >
+        3;
+
+    final advanced = <LatLng>[
+      if (shouldPrependCurrent) currentPosition,
+      ...remaining,
+    ];
+    _activePlaceRoute = List<LatLng>.unmodifiable(advanced);
+    notifyListeners();
+  }
 
   void setRoutesTabActive(bool active) {
     if (_isRoutesTabActive == active) return;

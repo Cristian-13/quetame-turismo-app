@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Quetame Turismo</string>
+	<string>Quetame 200 Años</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -27,9 +27,11 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Usamos tu ubicación para mostrarte los sitios turísticos de Quetame en el mapa y guiarte en las rutas.</string>
+	<string>Requerido para guiarte por los puntos de interés de Quetame</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Requerido para guiarte por los puntos de interés de Quetame</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Se requiere ubicación para el seguimiento de rutas de senderismo.</string>
+	<string>Requerido para guiarte por los puntos de interés de Quetame</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>

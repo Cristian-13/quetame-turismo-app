@@ -10,11 +10,15 @@ import 'package:quetame_turismo/providers/route_provider.dart';
 import 'package:quetame_turismo/providers/theme_provider.dart';
 import 'package:quetame_turismo/screens/splash_screen.dart';
 import 'package:quetame_turismo/theme/app_theme.dart';
+import 'package:quetame_turismo/theme/theme_notifier.dart';
 import 'firebase_options.dart';
 
 /// Duración y curva alineadas con la animación interna de [MaterialApp].
 const Duration kThemeTransitionDuration = Duration(milliseconds: 600);
 const Curve kThemeTransitionCurve = Curves.easeInOutCubic;
+
+/// Ancho máximo en escritorio / PWA para mantener proporciones móviles.
+const double kAppMaxContentWidth = 600;
 
 void main() async {
   try {
@@ -52,17 +56,27 @@ class QuetameTurismoApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = context.watch<ThemeProvider>();
-
-    return MaterialApp(
-      title: 'Quetame Turismo Bicentenario',
-      theme: AppTheme.lightTheme(),
-      darkTheme: AppTheme.darkTheme(),
-      themeMode: themeProvider.themeMode,
-      themeAnimationDuration: kThemeTransitionDuration,
-      themeAnimationCurve: kThemeTransitionCurve,
-      home: const SplashScreen(),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeNotifier,
+      builder: (context, themeMode, _) {
+        return MaterialApp(
+          title: 'Quetame 200 Años',
+          theme: AppTheme.lightTheme(),
+          darkTheme: AppTheme.darkTheme(),
+          themeMode: themeMode,
+          themeAnimationDuration: kThemeTransitionDuration,
+          themeAnimationCurve: kThemeTransitionCurve,
+          home: const SplashScreen(),
+          builder: (context, child) {
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: kAppMaxContentWidth),
+                child: child ?? const SizedBox.shrink(),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
-

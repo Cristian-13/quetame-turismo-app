@@ -2,11 +2,26 @@ import 'dart:async';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:quetame_turismo/core/audio_source_resolver.dart';
+
+class AudioAutoplayBlockedException implements Exception {
+  const AudioAutoplayBlockedException();
+}
 
 class AudioProvider extends ChangeNotifier {
   AudioProvider() {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+      unawaited(
+        _player.setAudioContext(
+          AudioContext(
+            iOS: AudioContextIOS(
+              category: AVAudioSessionCategory.playback,
+              options: {AVAudioSessionOptions.mixWithOthers},
+            ),
+          ),
+        ),
+      );
+    }
     if (kIsWeb) {
       unawaited(_player.setReleaseMode(ReleaseMode.stop));
     }
@@ -104,6 +119,9 @@ class AudioProvider extends ChangeNotifier {
       await _startPlayback(source);
     } catch (e, st) {
       debugPrint('playRouteAudio error: $e\n$st');
+      if (kIsWeb && _isWebAutoplayBlockedError(e)) {
+        throw const AudioAutoplayBlockedException();
+      }
       await _player.stop();
       _activeRouteId = null;
       _loadedUrl = null;
@@ -113,6 +131,13 @@ class AudioProvider extends ChangeNotifier {
       notifyListeners();
       rethrow;
     }
+  }
+
+  bool _isWebAutoplayBlockedError(Object error) {
+    final message = error.toString().toLowerCase();
+    return message.contains('notallowederror') ||
+        message.contains('the play() request was interrupted') ||
+        message.contains('user gesture');
   }
 
   Future<void> pauseAudio() async {

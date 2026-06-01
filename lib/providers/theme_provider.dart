@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:quetame_turismo/theme/theme_notifier.dart';
 
+/// Puente con Provider para pantallas que aún usan [ChangeNotifier].
 class ThemeProvider extends ChangeNotifier {
-  ThemeMode _themeMode = ThemeMode.light;
-
-  ThemeMode get themeMode => _themeMode;
-  bool get isDarkMode => _themeMode == ThemeMode.dark;
-
-  void toggleTheme() {
-    _themeMode = isDarkMode ? ThemeMode.light : ThemeMode.dark;
-    notifyListeners();
+  ThemeProvider() {
+    themeNotifier.addListener(notifyListeners);
   }
+
+  ThemeMode get themeMode => themeNotifier.value;
+  bool get isDarkMode => themeMode == ThemeMode.dark;
+
+  void toggleTheme() => toggleAppTheme();
 }

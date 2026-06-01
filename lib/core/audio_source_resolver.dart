@@ -17,14 +17,20 @@ class AudioSourceResolver {
     if (!kIsWeb) return trimmed;
 
     final lower = trimmed.toLowerCase();
-    if (lower.startsWith('http://') || lower.startsWith('https://')) {
+    if (lower.startsWith('http://')) {
+      return 'https://${trimmed.substring('http://'.length)}';
+    }
+    if (lower.startsWith('https://')) {
       if (lower.contains('soundhelix.com')) {
         return _webFallbackMp3;
       }
       return trimmed;
     }
 
-    return trimmed;
+    if (trimmed.startsWith('assets/') || trimmed.startsWith('/')) {
+      return trimmed;
+    }
+    return _webFallbackMp3;
   }
 
   static Source resolve(String urlOrPath) {

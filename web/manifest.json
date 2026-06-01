@@ -1,11 +1,11 @@
 {
-    "name": "quetame_turismo",
-    "short_name": "quetame_turismo",
+    "name": "Quetame 200 Años",
+    "short_name": "Quetame 200",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FDF8EB",
+    "theme_color": "#FDF8EB",
+    "description": "Rutas ecológicas y turismo en Quetame.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
