@@ -31,6 +31,13 @@ class LocationProvider extends ChangeNotifier {
 
   StreamSubscription<Position>? _positionSubscription;
   static const _distanceFilterMeters = 2.0;
+  static const Duration _gpsUiThrottle = Duration(milliseconds: 280);
+  static const double _gpsUiMinMeters = 1.2;
+  static const double _gpsHeadingThreshold = 6.0;
+
+  DateTime? _lastGpsUiAt;
+  LatLng? _lastGpsUiPosition;
+  double? _lastGpsUiHeading;
 
   Future<void> initialize() async {
     await refreshLocationState();
@@ -69,13 +76,17 @@ class LocationProvider extends ChangeNotifier {
 
     final speedKmh = position.speed >= 0 ? position.speed * 3.6 : 0.0;
     final heading = position.heading >= 0 ? position.heading : null;
-
-    gpsSnapshotNotifier.value = UserGpsSnapshot(
-      position: next,
-      speedKmh: speedKmh,
-      headingDegrees: heading,
-      accuracyMeters: position.accuracy,
-    );
+    if (_shouldEmitGpsSnapshot(next, heading)) {
+      gpsSnapshotNotifier.value = UserGpsSnapshot(
+        position: next,
+        speedKmh: speedKmh,
+        headingDegrees: heading,
+        accuracyMeters: position.accuracy,
+      );
+      _lastGpsUiAt = DateTime.now();
+      _lastGpsUiPosition = next;
+      _lastGpsUiHeading = heading;
+    }
 
     if (previous != null) {
       final delta = Geolocator.distanceBetween(
@@ -90,6 +101,32 @@ class LocationProvider extends ChangeNotifier {
     }
 
     positionNotifier.value = next;
+  }
+
+  bool _shouldEmitGpsSnapshot(LatLng next, double? heading) {
+    final lastAt = _lastGpsUiAt;
+    final lastPos = _lastGpsUiPosition;
+    if (lastAt == null || lastPos == null) return true;
+
+    final now = DateTime.now();
+    final elapsed = now.difference(lastAt);
+    if (elapsed >= _gpsUiThrottle) return true;
+
+    final movedMeters = Geolocator.distanceBetween(
+      lastPos.latitude,
+      lastPos.longitude,
+      next.latitude,
+      next.longitude,
+    );
+    if (movedMeters >= _gpsUiMinMeters) return true;
+
+    final lastHeading = _lastGpsUiHeading;
+    if (heading != null && lastHeading != null) {
+      final diff = (heading - lastHeading).abs();
+      final normalized = diff > 180 ? 360 - diff : diff;
+      if (normalized >= _gpsHeadingThreshold) return true;
+    }
+    return false;
   }
 
   Future<void> _startPositionStream() async {

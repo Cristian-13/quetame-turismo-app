@@ -30,13 +30,11 @@ class _MapSearchOverlayState extends State<MapSearchOverlay> {
   void initState() {
     super.initState();
     _focusNode.addListener(_onFocusChanged);
-    widget.viewModel.addListener(_onViewModelChanged);
   }
 
   @override
   void dispose() {
     _focusNode.removeListener(_onFocusChanged);
-    widget.viewModel.removeListener(_onViewModelChanged);
     _focusNode.dispose();
     super.dispose();
   }
@@ -45,71 +43,72 @@ class _MapSearchOverlayState extends State<MapSearchOverlay> {
     widget.viewModel.setSearchFocused(_focusNode.hasFocus);
   }
 
-  void _onViewModelChanged() {
-    if (mounted) setState(() {});
-  }
-
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final showSuggestions = widget.viewModel.searchFocused;
-    final suggestions = widget.viewModel.searchSuggestions;
-    final showPopularLabel =
-        widget.viewModel.searchQuery.isEmpty && suggestions.isNotEmpty;
+    return ListenableBuilder(
+      listenable: widget.viewModel,
+      builder: (context, _) {
+        final theme = Theme.of(context);
+        final showSuggestions = widget.viewModel.searchFocused;
+        final suggestions = widget.viewModel.searchSuggestions;
+        final showPopularLabel =
+            widget.viewModel.searchQuery.isEmpty && suggestions.isNotEmpty;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        MapGlassSearchBar(
-          controller: widget.searchController,
-          focusNode: _focusNode,
-          onChanged: widget.onSearchChanged,
-        ),
-        if (showSuggestions) ...[
-          const SizedBox(height: 8),
-          MapGlassContainer(
-            borderRadius: BorderRadius.circular(20),
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  showPopularLabel
-                      ? 'Sugerencias populares'
-                      : 'Resultados',
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                if (suggestions.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Text(
-                      'No hay coincidencias',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  )
-                else
-                  ...suggestions.map(
-                    (entity) => _SuggestionTile(
-                      entity: entity,
-                      onTap: () {
-                        _focusNode.unfocus();
-                        widget.viewModel.setSearchFocused(false);
-                        widget.onSuggestionSelected(entity);
-                      },
-                    ),
-                  ),
-              ],
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            MapGlassSearchBar(
+              controller: widget.searchController,
+              focusNode: _focusNode,
+              onChanged: widget.onSearchChanged,
             ),
-          ),
-        ],
-        const SizedBox(height: 16),
-        widget.categoryBar,
-      ],
+            if (showSuggestions) ...[
+              const SizedBox(height: 8),
+              MapGlassContainer(
+                borderRadius: BorderRadius.circular(20),
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      showPopularLabel
+                          ? 'Sugerencias populares'
+                          : 'Resultados',
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    if (suggestions.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Text(
+                          'No hay coincidencias',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      )
+                    else
+                      ...suggestions.map(
+                        (entity) => _SuggestionTile(
+                          entity: entity,
+                          onTap: () {
+                            _focusNode.unfocus();
+                            widget.viewModel.setSearchFocused(false);
+                            widget.onSuggestionSelected(entity);
+                          },
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
+            widget.categoryBar,
+          ],
+        );
+      },
     );
   }
 }

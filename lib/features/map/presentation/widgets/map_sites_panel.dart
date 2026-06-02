@@ -162,6 +162,7 @@ class _EntityListCard extends StatelessWidget {
                 entity.displayImageUrl,
                 fit: BoxFit.cover,
                 gaplessPlayback: true,
+                filterQuality: FilterQuality.low,
                 loadingBuilder: (context, child, progress) {
                   if (progress == null) return child;
                   return const Center(
@@ -259,6 +260,7 @@ class _EntityDetailCard extends StatelessWidget {
                   Image.network(
                     entity.displayImageUrl,
                     fit: BoxFit.cover,
+                    filterQuality: FilterQuality.low,
                     loadingBuilder: (context, child, progress) {
                       if (progress == null) return child;
                       return const Center(

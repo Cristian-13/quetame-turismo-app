@@ -25,13 +25,19 @@ class MapNavigationHud extends StatelessWidget {
         final current = gps?.position ?? locationProvider.currentLocation;
         final speedKmh = gps?.speedKmh ?? 0;
         final route = routeProvider.activePlaceRoute;
+        final analysis = _analyzeRoute(
+          currentPosition: current,
+          routePoints: route,
+        );
         final remainingMeters = _remainingDistanceMeters(
           currentPosition: current,
           routePoints: route,
+          nearestIndex: analysis?.nearestIndex ?? 0,
         );
         final warning = _shouldWarn(
           currentPosition: current,
           routePoints: route,
+          nearestDistanceMeters: analysis?.nearestDistanceMeters ?? 0,
         );
 
         final speedLabel =
@@ -88,6 +94,7 @@ class MapNavigationHud extends StatelessWidget {
   double? _remainingDistanceMeters({
     required LatLng? currentPosition,
     required List<LatLng> routePoints,
+    required int nearestIndex,
   }) {
     if (currentPosition == null || routePoints.isEmpty) return null;
     if (routePoints.length == 1) {
@@ -98,7 +105,6 @@ class MapNavigationHud extends StatelessWidget {
       );
     }
 
-    final nearestIndex = _nearestVertexIndex(currentPosition, routePoints);
     final distance = const Distance();
     var total = distance.as(
       LengthUnit.Meter,
@@ -118,6 +124,7 @@ class MapNavigationHud extends StatelessWidget {
   bool _shouldWarn({
     required LatLng? currentPosition,
     required List<LatLng> routePoints,
+    required double nearestDistanceMeters,
   }) {
     if (currentPosition == null) return false;
     final distance = const Distance();
@@ -129,11 +136,15 @@ class MapNavigationHud extends StatelessWidget {
     if (fromStart > _warningDistanceMeters) return true;
     if (routePoints.isEmpty) return false;
 
-    final nearest = _minDistanceToRoute(currentPosition, routePoints);
-    return nearest > _warningDistanceMeters;
+    return nearestDistanceMeters > _warningDistanceMeters;
   }
 
-  int _nearestVertexIndex(LatLng currentPosition, List<LatLng> routePoints) {
+  _RouteAnalysis? _analyzeRoute({
+    required LatLng? currentPosition,
+    required List<LatLng> routePoints,
+  }) {
+    if (currentPosition == null || routePoints.isEmpty) return null;
+
     final distance = const Distance();
     var nearestIndex = 0;
     var nearestMeters = double.infinity;
@@ -148,23 +159,10 @@ class MapNavigationHud extends StatelessWidget {
         nearestIndex = i;
       }
     }
-    return nearestIndex;
-  }
-
-  double _minDistanceToRoute(LatLng currentPosition, List<LatLng> routePoints) {
-    final distance = const Distance();
-    var nearestMeters = double.infinity;
-    for (final point in routePoints) {
-      final d = distance.as(
-        LengthUnit.Meter,
-        currentPosition,
-        point,
-      );
-      if (d < nearestMeters) {
-        nearestMeters = d;
-      }
-    }
-    return nearestMeters;
+    return _RouteAnalysis(
+      nearestIndex: nearestIndex,
+      nearestDistanceMeters: nearestMeters,
+    );
   }
 
   String _formatDistance(double? meters) {
@@ -172,6 +170,16 @@ class MapNavigationHud extends StatelessWidget {
     if (meters < 1000) return '${meters.round()} m';
     return '${(meters / 1000).toStringAsFixed(1)} km';
   }
+}
+
+class _RouteAnalysis {
+  const _RouteAnalysis({
+    required this.nearestIndex,
+    required this.nearestDistanceMeters,
+  });
+
+  final int nearestIndex;
+  final double nearestDistanceMeters;
 }
 
 class _HudMetric extends StatelessWidget {

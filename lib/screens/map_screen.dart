@@ -57,6 +57,9 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   late final AnimationController _hudFadeController;
 
   Timer? _searchDebounce;
+  bool _isComputingRoute = false;
+  String _firestoreSignature = '';
+  List<MapEntity> _cachedEntities = const <MapEntity>[];
 
   @override
   void initState() {
@@ -259,13 +262,16 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _setRouteToEntity(MapEntity entity) async {
+    if (_isComputingRoute) return;
     final messenger = ScaffoldMessenger.of(context);
     final locationProvider = context.read<LocationProvider>();
     final routeProvider = context.read<RouteProvider>();
+    setState(() => _isComputingRoute = true);
 
     await locationProvider.refreshLocationState();
     final current = locationProvider.currentLocation;
     if (current == null) {
+      if (mounted) setState(() => _isComputingRoute = false);
       messenger.showSnackBar(
         const SnackBar(
           content: Text('Activa tu ubicación para fijar la ruta.'),
@@ -296,7 +302,33 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           ),
         ),
       );
+    } finally {
+      if (mounted) setState(() => _isComputingRoute = false);
     }
+  }
+
+  List<MapEntity> _resolveEntitiesFromSnapshot(
+    QuerySnapshot<Map<String, dynamic>> snapshot,
+  ) {
+    final docs = snapshot.docs;
+    final signature = docs
+        .map(
+          (doc) =>
+              '${doc.id}|${doc.data()['nombre'] ?? ''}|${doc.data()['latitud'] ?? ''}|${doc.data()['longitud'] ?? ''}|${doc.data()['categoria'] ?? ''}',
+        )
+        .join('||');
+    if (signature == _firestoreSignature && _cachedEntities.isNotEmpty) {
+      return _cachedEntities;
+    }
+
+    final firestoreSites = docs
+        .map((doc) => FirestoreMapSite.fromMap(doc.id, doc.data()))
+        .whereType<FirestoreMapSite>()
+        .toList(growable: false);
+    final entities = MapEntityCatalog.buildFromFirestoreSites(firestoreSites);
+    _firestoreSignature = signature;
+    _cachedEntities = entities;
+    return entities;
   }
 
   Future<void> _ensureLocationReady() async {
@@ -385,15 +417,10 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           );
         }
 
-        final firestoreSites = snapshot.data?.docs
-                .map((doc) => FirestoreMapSite.fromMap(doc.id, doc.data()))
-                .whereType<FirestoreMapSite>()
-                .toList() ??
-            <FirestoreMapSite>[];
-
-        _viewModel.setEntities(
-          MapEntityCatalog.buildFromFirestoreSites(firestoreSites),
-        );
+        final data = snapshot.data;
+        if (data != null) {
+          _viewModel.setEntities(_resolveEntitiesFromSnapshot(data));
+        }
 
         return Scaffold(
           backgroundColor: theme.scaffoldBackgroundColor,
@@ -618,7 +645,9 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                         onEntitySelected: _onEntitySelected,
                         onGoToPlace: active == null
                             ? () {}
-                            : () => _setRouteToEntity(active),
+                            : (_isComputingRoute
+                                ? () {}
+                                : () => _setRouteToEntity(active)),
                         onViewDetails: active == null
                             ? () {}
                             : () => _openPlaceDetails(active),

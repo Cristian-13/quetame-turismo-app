@@ -27,12 +27,21 @@ class MapViewModel extends ChangeNotifier {
   MapEntity? get selectedEntity => _selectedEntity;
 
   String _entitiesSignature = '';
+  bool _derivedDirty = true;
+  List<MapEntity> _filteredCache = const [];
+  List<MapEntity> _suggestionsCache = const [];
 
   void setEntities(List<MapEntity> entities) {
-    final signature = entities.map((e) => e.id).join('|');
+    final signature = entities
+        .map(
+          (e) =>
+              '${e.id}|${e.name}|${e.categoryLabel}|${e.latitude.toStringAsFixed(5)}|${e.longitude.toStringAsFixed(5)}',
+        )
+        .join('||');
     if (_entitiesSignature == signature) return;
     _entitiesSignature = signature;
     _allEntities = entities;
+    _markDerivedDirty();
     notifyListeners();
   }
 
@@ -40,6 +49,7 @@ class MapViewModel extends ChangeNotifier {
     if (_selectedFilterId == filterId) return;
     _selectedFilterId = filterId;
     clearSelection();
+    _markDerivedDirty();
     notifyListeners();
   }
 
@@ -47,6 +57,7 @@ class MapViewModel extends ChangeNotifier {
     final next = query.trim();
     if (_searchQuery == next) return;
     _searchQuery = next;
+    _markDerivedDirty();
     notifyListeners();
   }
 
@@ -70,29 +81,54 @@ class MapViewModel extends ChangeNotifier {
   }
 
   List<MapEntity> get filteredEntities {
+    _ensureDerivedComputed();
+    return _filteredCache;
+  }
+
+  List<MapEntity> get searchSuggestions {
+    _ensureDerivedComputed();
+    return _suggestionsCache;
+  }
+
+  void _ensureDerivedComputed() {
+    if (!_derivedDirty) return;
+
     final byCategory = _allEntities.where(
       (entity) => MapCategoryFilterBar.entityMatchesFilter(
         entity,
         _selectedFilterId,
       ),
     );
-    if (_searchQuery.isEmpty) return byCategory.toList();
+    final byCategoryList = byCategory.toList(growable: false);
 
-    final q = _searchQuery.toLowerCase();
-    return byCategory
+    if (_searchQuery.isEmpty) {
+      _filteredCache = byCategoryList;
+    } else {
+      final q = _searchQuery.toLowerCase();
+      _filteredCache = byCategoryList
+          .where((entity) => entity.name.toLowerCase().contains(q))
+          .toList(growable: false);
+    }
+
+    if (_searchQuery.isEmpty) {
+      _suggestionsCache = _resolvePopularEntities();
+    } else {
+      final q = _searchQuery.toLowerCase();
+      _suggestionsCache = _allEntities
         .where((entity) => entity.name.toLowerCase().contains(q))
         .toList();
+    }
+    if (_suggestionsCache.length > 8) {
+      _suggestionsCache = _suggestionsCache.take(8).toList(growable: false);
+    } else {
+      _suggestionsCache = List.unmodifiable(_suggestionsCache);
+    }
+
+    _derivedDirty = false;
   }
 
-  List<MapEntity> get searchSuggestions {
-    if (_searchQuery.isEmpty) {
-      return _resolvePopularEntities();
-    }
-    final q = _searchQuery.toLowerCase();
-    return _allEntities
-        .where((entity) => entity.name.toLowerCase().contains(q))
-        .take(8)
-        .toList();
+  void _markDerivedDirty() {
+    _derivedDirty = true;
   }
 
   List<MapEntity> _resolvePopularEntities() {
