@@ -40,7 +40,7 @@ class QuetameNetworkImage extends StatelessWidget {
         backgroundColor: bg,
         iconColor: iconColor,
       );
-    } else {
+    } else if (width != null || height != null) {
       child = Image.network(
         resolved,
         fit: fit,
@@ -69,6 +69,37 @@ class QuetameNetworkImage extends StatelessWidget {
           backgroundColor: bg,
           iconColor: iconColor,
           showWarning: true,
+        ),
+      );
+    } else {
+      child = SizedBox.expand(
+        child: Image.network(
+          resolved,
+          fit: fit,
+          gaplessPlayback: gaplessPlayback,
+          filterQuality: filterQuality,
+          loadingBuilder: (context, imageChild, progress) {
+            if (progress == null) return imageChild;
+            return ColoredBox(
+              color: bg,
+              child: const Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: AppColors.goldPrimary,
+                  ),
+                ),
+              ),
+            );
+          },
+          errorBuilder: (context, error, stackTrace) => _Placeholder(
+            icon: Icons.broken_image_outlined,
+            backgroundColor: bg,
+            iconColor: iconColor,
+            showWarning: true,
+          ),
         ),
       );
     }

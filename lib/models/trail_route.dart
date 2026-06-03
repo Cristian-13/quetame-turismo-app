@@ -17,10 +17,25 @@ class TrailRoute {
   final String? audioUrlRaw;
   final String? imagenUrlRaw;
 
-  /// Audioguía resuelta desde `audio_url` de Firestore (sin fallback cruzado).
-  String? get audioguideUrl => QuetameCdnUrls.resolveAudio(audioUrlRaw);
+  /// Audioguía: Firestore (`audio_url` / `audioUrl`) con fallback CDN por ID de ruta.
+  String? get audioguideUrl {
+    final fromFirestore = QuetameCdnUrls.resolveAudio(audioUrlRaw);
+    if (fromFirestore != null && fromFirestore.isNotEmpty) {
+      return fromFirestore;
+    }
+    return QuetameCdnUrls.routeAudioguide(id);
+  }
 
-  String? get coverImageUrl => QuetameCdnUrls.resolveImage(imagenUrlRaw);
+  /// Alias explícito para widgets que esperan `audioUrl`.
+  String? get audioUrl => audioguideUrl;
+
+  String? get coverImageUrl {
+    final fromFirestore = QuetameCdnUrls.resolveImage(imagenUrlRaw);
+    if (fromFirestore != null && fromFirestore.isNotEmpty) {
+      return fromFirestore;
+    }
+    return QuetameCdnUrls.routeCoverImage(id);
+  }
 
   const TrailRoute({
     required this.id,

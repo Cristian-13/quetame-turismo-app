@@ -23,6 +23,7 @@ class AudioProvider extends ChangeNotifier {
       );
     }
     if (kIsWeb) {
+      unawaited(_player.setPlayerMode(PlayerMode.mediaPlayer));
       unawaited(_player.setReleaseMode(ReleaseMode.stop));
     }
     _positionSub = _player.onPositionChanged.listen((d) {

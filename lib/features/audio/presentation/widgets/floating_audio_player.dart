@@ -79,6 +79,18 @@ class FloatingAudioPlayer extends StatelessWidget {
                 backgroundColor: AppColors.earthAccent,
                 child: IconButton(
                   onPressed: () async {
+                    if ((toggleUrl ?? '').trim().isEmpty) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Esta ruta no tiene audio-guía configurada.',
+                          ),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                      return;
+                    }
                     try {
                       await context.read<AudioProvider>().toggleRoutePlayPause(
                             routeId,

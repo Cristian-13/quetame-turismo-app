@@ -14,14 +14,26 @@ class QuetameCdnUrls {
   /// Audioguía de ruta (carpeta `audios`).
   static String? resolveAudio(String? raw) => _resolve(raw, defaultFolder: 'audios');
 
-  static String? routeCoverImage(String routeId) {
-    // Sin fallback hardcodeado: la imagen debe venir de Firestore (`imagen_url`).
-    return null;
+  static String? routeAudioguide(String routeId) {
+    final normalized = routeId.trim().toLowerCase();
+    final path = switch (normalized) {
+      'la_torre' || 'r1' => 'audios/Whiscola_Tono.flac',
+      'paramo_burras' || 'r2' => 'audios/No pienso llamar_Tono.flac',
+      _ => null,
+    };
+    if (path == null) return null;
+    return resolveAudio(path);
   }
 
-  static String? routeAudioguide(String routeId) {
-    // Sin fallback hardcodeado: el audio debe venir de Firestore (`audio_url`).
-    return null;
+  static String? routeCoverImage(String routeId) {
+    final normalized = routeId.trim().toLowerCase();
+    final path = switch (normalized) {
+      'la_torre' || 'r1' => 'imagenes/la_torre.jpg',
+      'paramo_burras' || 'r2' => 'imagenes/paramo_burras.jpg',
+      _ => null,
+    };
+    if (path == null) return null;
+    return resolveImage(path);
   }
 
   static String? _resolve(String? raw, {required String defaultFolder}) {

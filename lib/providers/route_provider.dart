@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:latlong2/latlong.dart';
+import 'package:quetame_turismo/core/content/firestore_fields.dart';
 import 'package:quetame_turismo/models/trail_route.dart';
 import 'package:quetame_turismo/theme/app_colors.dart';
 
@@ -176,13 +177,45 @@ class RouteProvider extends ChangeNotifier {
     try {
       final snapshot =
           await FirebaseFirestore.instance.collection('rutas').get();
-      return {
-        for (final doc in snapshot.docs) doc.id: doc.data(),
-      };
+      final meta = <String, Map<String, dynamic>>{};
+      for (final doc in snapshot.docs) {
+        meta[doc.id] = doc.data();
+        final canonical = _canonicalRouteId(doc.id);
+        if (canonical != doc.id) {
+          meta[canonical] = doc.data();
+        }
+      }
+      return meta;
     } catch (e) {
       debugPrint('No se pudo cargar rutas desde Firestore: $e');
       return const {};
     }
+  }
+
+  /// Normaliza IDs de documento Firestore a los IDs internos de la app.
+  String _canonicalRouteId(String docId) {
+    final normalized = docId
+        .trim()
+        .toLowerCase()
+        .replaceAll('á', 'a')
+        .replaceAll('é', 'e')
+        .replaceAll('í', 'i')
+        .replaceAll('ó', 'o')
+        .replaceAll('ú', 'u')
+        .replaceAll('-', '_')
+        .replaceAll(' ', '_');
+
+    if (normalized == 'r1' ||
+        normalized.contains('la_torre') ||
+        normalized == 'latorre') {
+      return 'la_torre';
+    }
+    if (normalized == 'r2' ||
+        normalized.contains('paramo') ||
+        normalized.contains('burras')) {
+      return 'paramo_burras';
+    }
+    return normalized;
   }
 
   void _rebuildRoutesFromGeoJson([
@@ -235,15 +268,18 @@ class RouteProvider extends ChangeNotifier {
     required List<LatLng> pathPoints,
     Map<String, dynamic>? data,
   }) {
-    final audioRaw = (data?['audio_url'] ?? data?['audioUrl'] ?? '')
-        .toString()
-        .trim();
-    final imagenRaw = (data?['imagen_url'] ??
-            data?['imagen_presentacion_url'] ??
-            data?['imagenUrl'] ??
-            '')
-        .toString()
-        .trim();
+    final audioRaw = FirestoreFields.readString(data, [
+      'audio_url',
+      'audioUrl',
+      'audioguide_url',
+      'audioguideUrl',
+    ]);
+    final imagenRaw = FirestoreFields.readString(data, [
+      'imagen_url',
+      'imagenUrl',
+      'imagen_presentacion_url',
+      'imagenPresentacionUrl',
+    ]);
 
     return TrailRoute(
       id: id,

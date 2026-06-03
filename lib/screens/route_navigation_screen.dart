@@ -319,7 +319,7 @@ class _RouteNavigationScreenState extends State<RouteNavigationScreen> {
                   ignoring: !_showAudioPlayer,
                   child: FloatingAudioPlayer(
                     routeId: widget.route.id,
-                    toggleUrl: widget.route.audioguideUrl,
+                    toggleUrl: widget.route.audioUrl,
                     trackTitle: widget.route.title,
                   ),
                 ),

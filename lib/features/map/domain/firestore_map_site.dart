@@ -1,4 +1,5 @@
 import 'package:quetame_turismo/core/content/quetame_cdn_urls.dart';
+import 'package:quetame_turismo/core/content/firestore_fields.dart';
 import 'package:quetame_turismo/features/map/domain/map_entity_type.dart';
 import 'package:quetame_turismo/features/map/domain/map_entity_categories.dart';
 import 'package:quetame_turismo/models/place_model.dart';
@@ -47,24 +48,32 @@ class FirestoreMapSite {
     final descripcion = (data['descripcion'] ?? '').toString().trim();
     final historia = (data['historia'] ?? '').toString().trim();
     final horarios = (data['horarios'] ?? '').toString().trim();
-    final horaApertura = (data['hora_apertura'] ?? '').toString().trim();
-    final horaCierre = (data['hora_cierre'] ?? '').toString().trim();
+    final horaApertura = FirestoreFields.readString(data, [
+      'hora_apertura',
+      'horaApertura',
+      'hora_apertura_str',
+    ]);
+    final horaCierre = FirestoreFields.readString(data, [
+      'hora_cierre',
+      'horaCierre',
+      'hora_cierre_str',
+    ]);
     final telefono =
         (data['telefono'] ?? data['phone'] ?? '').toString().trim();
-    final menuUrlRaw = (data['imagen_menu_url'] ??
-            data['menu_url'] ??
-            data['menuUrl'] ??
-            '')
-        .toString()
-        .trim();
+    final menuUrlRaw = FirestoreFields.readString(data, [
+      'imagen_menu_url',
+      'imagenMenuUrl',
+      'menu_url',
+      'menuUrl',
+    ]);
     final tipo = (data['tipo'] ?? 'sitio').toString().trim();
     final categoriaRaw = (data['categoria'] ?? '').toString();
-    final imagenUrlRaw = (data['imagen_presentacion_url'] ??
-            data['imagen_url'] ??
-            data['imageUrl'] ??
-            '')
-        .toString()
-        .trim();
+    final imagenUrlRaw = FirestoreFields.readString(data, [
+      'imagen_presentacion_url',
+      'imagenPresentacionUrl',
+      'imagen_url',
+      'imageUrl',
+    ]);
     final lat = data['latitud'] ?? data['latitude'];
     final lng = data['longitud'] ?? data['longitude'];
 

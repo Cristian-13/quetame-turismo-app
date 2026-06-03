@@ -83,8 +83,8 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
   }
 
   _OpenStateData _buildOpenState(PlaceModel place) {
-    final apertura = _parseTimeToMinutes(place.horaApertura);
-    final cierre = _parseTimeToMinutes(place.horaCierre);
+    final apertura = _parseTimeOfDay(place.horaApertura);
+    final cierre = _parseTimeOfDay(place.horaCierre);
     if (apertura == null || cierre == null) {
       return const _OpenStateData(
         label: 'Consultar horarios',
@@ -93,10 +93,24 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
     }
 
     final now = DateTime.now();
-    final currentMinutes = (now.hour * 60) + now.minute;
-    final isOpen = apertura <= cierre
-        ? currentMinutes >= apertura && currentMinutes < cierre
-        : currentMinutes >= apertura || currentMinutes < cierre;
+    final openToday = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      apertura.hour,
+      apertura.minute,
+    );
+    final closeToday = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      cierre.hour,
+      cierre.minute,
+    );
+
+    final isOpen = !closeToday.isBefore(openToday)
+        ? !now.isBefore(openToday) && now.isBefore(closeToday)
+        : !now.isBefore(openToday) || now.isBefore(closeToday);
 
     if (isOpen) {
       return const _OpenStateData(
@@ -110,21 +124,20 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
     );
   }
 
-  /// Convierte "HH:mm" (ej. "08:00") a minutos desde medianoche.
-  /// Devuelve null si el valor es nulo, vacío o no parseable.
-  int? _parseTimeToMinutes(String? value) {
+  /// Parsea "HH:mm" a componentes de hora. Devuelve null si el valor es inválido.
+  ({int hour, int minute})? _parseTimeOfDay(String? value) {
     final raw = (value ?? '').trim();
     if (raw.isEmpty) return null;
 
-    final parts = raw.split(':');
-    if (parts.length < 2) return null;
+    final match = RegExp(r'^(\d{1,2}):(\d{2})').firstMatch(raw);
+    if (match == null) return null;
 
-    final hour = int.tryParse(parts[0].trim());
-    final minute = int.tryParse(parts[1].trim());
+    final hour = int.tryParse(match.group(1)!);
+    final minute = int.tryParse(match.group(2)!);
     if (hour == null || minute == null) return null;
     if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
 
-    return (hour * 60) + minute;
+    return (hour: hour, minute: minute);
   }
 
   @override
@@ -496,10 +509,14 @@ class _MenuTab extends StatelessWidget {
                             message: 'No se encontró el archivo del menú.',
                           ),
                         )
-                      : QuetameNetworkImage(
-                          url: menuUrl,
-                          fit: BoxFit.contain,
-                          placeholderIcon: Icons.restaurant_menu,
+                      : SizedBox(
+                          width: double.infinity,
+                          height: double.infinity,
+                          child: QuetameNetworkImage(
+                            url: menuUrl,
+                            fit: BoxFit.contain,
+                            placeholderIcon: Icons.restaurant_menu,
+                          ),
                         ),
                 ),
               ),

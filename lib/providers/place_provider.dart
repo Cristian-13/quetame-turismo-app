@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:quetame_turismo/core/content/firestore_fields.dart';
 import 'package:quetame_turismo/core/content/quetame_cdn_urls.dart';
 import 'package:quetame_turismo/features/map/domain/map_entity_categories.dart';
 import 'package:quetame_turismo/features/map/domain/map_entity_type.dart';
@@ -62,14 +63,26 @@ PlaceModel _placeFromFirestore(String docId, Map<String, dynamic> data) {
 
   final lat = data['latitude'] ?? data['latitud'];
   final lng = data['longitude'] ?? data['longitud'];
-  final rawImage = (data['imagen_presentacion_url'] ??
-          data['imagen_url'] ??
-          data['imageUrl'] ??
-          '')
-      .toString();
-  final rawMenu =
-      (data['imagen_menu_url'] ?? data['menu_url'] ?? data['menuUrl'] ?? '')
-          .toString();
+  final rawImage = FirestoreFields.readString(data, [
+    'imagen_presentacion_url',
+    'imagenPresentacionUrl',
+    'imagen_url',
+    'imageUrl',
+  ]);
+  final rawMenu = FirestoreFields.readString(data, [
+    'imagen_menu_url',
+    'imagenMenuUrl',
+    'menu_url',
+    'menuUrl',
+  ]);
+  final rawHoraApertura = FirestoreFields.readString(data, [
+    'hora_apertura',
+    'horaApertura',
+  ]);
+  final rawHoraCierre = FirestoreFields.readString(data, [
+    'hora_cierre',
+    'horaCierre',
+  ]);
   final tipo = (data['tipo'] ?? 'sitio').toString();
 
   return PlaceModel(
@@ -85,8 +98,8 @@ PlaceModel _placeFromFirestore(String docId, Map<String, dynamic> data) {
     phone: data['phone']?.toString() ?? data['telefono']?.toString(),
     historia: data['historia']?.toString(),
     horarios: data['horarios']?.toString(),
-    horaApertura: data['hora_apertura']?.toString(),
-    horaCierre: data['hora_cierre']?.toString(),
+    horaApertura: rawHoraApertura.isEmpty ? null : rawHoraApertura,
+    horaCierre: rawHoraCierre.isEmpty ? null : rawHoraCierre,
     menuUrl: QuetameCdnUrls.resolveMenu(rawMenu),
   );
 }
