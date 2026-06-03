@@ -17,14 +17,8 @@ class TrailRoute {
   final String? audioUrlRaw;
   final String? imagenUrlRaw;
 
-  /// Audioguía: Firestore (`audio_url` / `audioUrl`) con fallback CDN por ID de ruta.
-  String? get audioguideUrl {
-    final fromFirestore = QuetameCdnUrls.resolveAudio(audioUrlRaw);
-    if (fromFirestore != null && fromFirestore.isNotEmpty) {
-      return fromFirestore;
-    }
-    return QuetameCdnUrls.routeAudioguide(id);
-  }
+  /// Audioguía resuelta desde `audios_rutas/{id}` (ID exacto del documento).
+  String? get audioguideUrl => QuetameCdnUrls.resolveAudio(audioUrlRaw);
 
   /// Alias explícito para widgets que esperan `audioUrl`.
   String? get audioUrl => audioguideUrl;

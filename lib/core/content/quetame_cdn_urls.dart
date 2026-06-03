@@ -15,14 +15,8 @@ class QuetameCdnUrls {
   static String? resolveAudio(String? raw) => _resolve(raw, defaultFolder: 'audios');
 
   static String? routeAudioguide(String routeId) {
-    final normalized = routeId.trim().toLowerCase();
-    final path = switch (normalized) {
-      'la_torre' || 'r1' => 'audios/Whiscola_Tono.flac',
-      'paramo_burras' || 'r2' => 'audios/No pienso llamar_Tono.flac',
-      _ => null,
-    };
-    if (path == null) return null;
-    return resolveAudio(path);
+    // Las audioguías se cargan exclusivamente desde Firestore (`audios_rutas/{routeId}`).
+    return null;
   }
 
   static String? routeCoverImage(String routeId) {

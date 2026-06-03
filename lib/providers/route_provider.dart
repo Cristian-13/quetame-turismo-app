@@ -159,7 +159,8 @@ class RouteProvider extends ChangeNotifier {
         ..addAll(byId);
 
       final firestoreMeta = await _loadRouteMetadataFromFirestore();
-      _rebuildRoutesFromGeoJson(firestoreMeta);
+      final routeAudios = await _loadRouteAudiosFromFirestore();
+      _rebuildRoutesFromGeoJson(firestoreMeta, routeAudios);
     } catch (e) {
       _geoRoutesError = e.toString();
       _geoRoutes.clear();
@@ -171,6 +172,38 @@ class RouteProvider extends ChangeNotifier {
       _isLoadingGeoRoutes = false;
       notifyListeners();
     }
+  }
+
+  /// Audioguías desde `audios_rutas/{routeId}` — lookup por ID exacto, sin índices.
+  Future<Map<String, String>> _loadRouteAudiosFromFirestore() async {
+    const routeIds = ['la_torre', 'paramo_burras'];
+    final audios = <String, String>{};
+    final collection =
+        FirebaseFirestore.instance.collection('audios_rutas');
+
+    for (final routeId in routeIds) {
+      try {
+        final doc = await collection.doc(routeId).get();
+        if (!doc.exists) {
+          debugPrint('audios_rutas/$routeId no encontrado en Firestore');
+          continue;
+        }
+        final url = FirestoreFields.readString(doc.data(), [
+          'audio_url',
+          'audioUrl',
+          'url',
+          'audioguide_url',
+          'audioguideUrl',
+        ]);
+        if (url.isNotEmpty) {
+          audios[routeId] = url;
+        }
+      } catch (e) {
+        debugPrint('Error al cargar audios_rutas/$routeId: $e');
+      }
+    }
+
+    return audios;
   }
 
   Future<Map<String, Map<String, dynamic>>> _loadRouteMetadataFromFirestore() async {
@@ -220,6 +253,7 @@ class RouteProvider extends ChangeNotifier {
 
   void _rebuildRoutesFromGeoJson([
     Map<String, Map<String, dynamic>> firestoreMeta = const {},
+    Map<String, String> routeAudios = const {},
   ]) {
     final laTorrePoints = _geoRouteById['la_torre'] ?? const <LatLng>[];
     final paramoPoints = _geoRouteById['paramo_burras'] ?? const <LatLng>[];
@@ -239,6 +273,7 @@ class RouteProvider extends ChangeNotifier {
           difficultyTextColor: AppColors.difficultyModerateFg,
           pathPoints: laTorrePoints,
           data: firestoreMeta['la_torre'],
+          audioUrlRaw: routeAudios['la_torre'],
         ),
         _buildTrailRoute(
           id: 'paramo_burras',
@@ -252,6 +287,7 @@ class RouteProvider extends ChangeNotifier {
           difficultyTextColor: AppColors.difficultyHardFg,
           pathPoints: paramoPoints,
           data: firestoreMeta['paramo_burras'],
+          audioUrlRaw: routeAudios['paramo_burras'],
         ),
       ]);
   }
@@ -267,13 +303,8 @@ class RouteProvider extends ChangeNotifier {
     required Color difficultyTextColor,
     required List<LatLng> pathPoints,
     Map<String, dynamic>? data,
+    String? audioUrlRaw,
   }) {
-    final audioRaw = FirestoreFields.readString(data, [
-      'audio_url',
-      'audioUrl',
-      'audioguide_url',
-      'audioguideUrl',
-    ]);
     final imagenRaw = FirestoreFields.readString(data, [
       'imagen_url',
       'imagenUrl',
@@ -297,7 +328,7 @@ class RouteProvider extends ChangeNotifier {
       difficultyColor: difficultyColor,
       difficultyTextColor: difficultyTextColor,
       pathPoints: pathPoints,
-      audioUrlRaw: audioRaw.isEmpty ? null : audioRaw,
+      audioUrlRaw: (audioUrlRaw ?? '').trim().isEmpty ? null : audioUrlRaw!.trim(),
       imagenUrlRaw: imagenRaw.isEmpty ? null : imagenRaw,
     );
   }
