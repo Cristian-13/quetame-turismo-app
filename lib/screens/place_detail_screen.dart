@@ -83,8 +83,8 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
   }
 
   _OpenStateData _buildOpenState(PlaceModel place) {
-    final apertura = _toMinutes(place.horaApertura);
-    final cierre = _toMinutes(place.horaCierre);
+    final apertura = _parseTimeToMinutes(place.horaApertura);
+    final cierre = _parseTimeToMinutes(place.horaCierre);
     if (apertura == null || cierre == null) {
       return const _OpenStateData(
         label: 'Consultar horarios',
@@ -99,19 +99,31 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
         : currentMinutes >= apertura || currentMinutes < cierre;
 
     if (isOpen) {
-      return const _OpenStateData(label: 'ABIERTO', color: AppColors.goldPrimary);
+      return const _OpenStateData(
+        label: 'Abierto',
+        color: AppColors.success,
+      );
     }
-    return const _OpenStateData(label: 'CERRADO', color: AppColors.error);
+    return const _OpenStateData(
+      label: 'Cerrado',
+      color: AppColors.error,
+    );
   }
 
-  int? _toMinutes(String? value) {
+  /// Convierte "HH:mm" (ej. "08:00") a minutos desde medianoche.
+  /// Devuelve null si el valor es nulo, vacío o no parseable.
+  int? _parseTimeToMinutes(String? value) {
     final raw = (value ?? '').trim();
+    if (raw.isEmpty) return null;
+
     final parts = raw.split(':');
-    if (parts.length != 2) return null;
-    final hour = int.tryParse(parts[0]);
-    final minute = int.tryParse(parts[1]);
+    if (parts.length < 2) return null;
+
+    final hour = int.tryParse(parts[0].trim());
+    final minute = int.tryParse(parts[1].trim());
     if (hour == null || minute == null) return null;
     if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+
     return (hour * 60) + minute;
   }
 

@@ -19,6 +19,8 @@ class MapEntity {
   final String? imagenMenuUrl;
   final String historia;
   final String horarios;
+  final String? horaApertura;
+  final String? horaCierre;
   final FirestoreMapSite _firestoreSource;
 
   MapEntity({
@@ -33,6 +35,8 @@ class MapEntity {
     required this.imagenMenuUrl,
     required this.historia,
     required this.horarios,
+    this.horaApertura,
+    this.horaCierre,
     required FirestoreMapSite firestoreSource,
   }) : _firestoreSource = firestoreSource;
 
@@ -95,6 +99,9 @@ class MapEntity {
       imagenMenuUrl: site.imagenMenuUrl,
       historia: site.historia,
       horarios: site.horarios,
+      horaApertura:
+          site.horaApertura.trim().isEmpty ? null : site.horaApertura.trim(),
+      horaCierre: site.horaCierre.trim().isEmpty ? null : site.horaCierre.trim(),
       firestoreSource: site,
     );
   }
