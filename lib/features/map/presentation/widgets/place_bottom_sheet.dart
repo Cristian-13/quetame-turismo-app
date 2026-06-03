@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:quetame_turismo/core/widgets/quetame_network_image.dart';
 import 'package:quetame_turismo/models/place_model.dart';
 import 'package:quetame_turismo/screens/place_detail_screen.dart';
 import 'package:quetame_turismo/theme/app_colors.dart';
@@ -51,11 +52,10 @@ class PlaceBottomSheet extends StatelessWidget {
             child: SizedBox(
               height: 150,
               width: double.infinity,
-              child: Image.network(
-                place.imageUrl,
+              child: QuetameNetworkImage(
+                url: place.imageUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (_, _, _) =>
-                    Container(color: AppColors.surfaceVariant),
+                placeholderIcon: Icons.place_outlined,
               ),
             ),
           ),

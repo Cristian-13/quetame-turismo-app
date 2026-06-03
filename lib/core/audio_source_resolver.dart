@@ -1,36 +1,28 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
+import 'package:quetame_turismo/core/content/quetame_cdn_urls.dart';
 
-/// Resuelve URLs y rutas de assets para [AudioPlayer] en móvil y Web.
+/// Resuelve URLs del CDN y rutas locales para [AudioPlayer] en móvil y Web.
 class AudioSourceResolver {
   const AudioSourceResolver._();
 
-  /// URLs con CORS habilitado (requerido por audioplayers en Web).
-  static const String _webFallbackMp3 =
-      'https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3';
-
-  /// Normaliza la URL antes de reproducir (p. ej. reemplaza fuentes sin CORS en Web).
   static String normalizeUrl(String urlOrPath) {
     final trimmed = urlOrPath.trim();
     if (trimmed.isEmpty) return trimmed;
 
-    if (!kIsWeb) return trimmed;
+    final cdn = QuetameCdnUrls.resolveAudio(trimmed);
+    if (cdn != null) return cdn;
 
-    final lower = trimmed.toLowerCase();
-    if (lower.startsWith('http://')) {
-      return 'https://${trimmed.substring('http://'.length)}';
-    }
-    if (lower.startsWith('https://')) {
-      if (lower.contains('soundhelix.com')) {
-        return _webFallbackMp3;
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      if (kIsWeb && trimmed.toLowerCase().contains('soundhelix.com')) {
+        return QuetameCdnUrls.routeAudioguide('la_torre') ?? trimmed;
       }
-      return trimmed;
+      return trimmed.startsWith('http://')
+          ? 'https://${trimmed.substring('http://'.length)}'
+          : trimmed;
     }
 
-    if (trimmed.startsWith('assets/') || trimmed.startsWith('/')) {
-      return trimmed;
-    }
-    return _webFallbackMp3;
+    return trimmed;
   }
 
   static Source resolve(String urlOrPath) {

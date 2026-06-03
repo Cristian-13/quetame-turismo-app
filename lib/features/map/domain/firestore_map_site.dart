@@ -1,3 +1,4 @@
+import 'package:quetame_turismo/core/content/quetame_cdn_urls.dart';
 import 'package:quetame_turismo/models/place_model.dart';
 
 /// Sitio turístico leído desde Firestore (`sitios`).
@@ -34,19 +35,10 @@ class FirestoreMapSite {
     required this.longitud,
   });
 
-  static const String _fallbackImage =
-      'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1200&q=60';
+  /// URL lista para [Image.network] o `null` si no hay imagen en Firebase/CDN.
+  String? get displayImageUrl => QuetameCdnUrls.resolveImage(imagenUrl);
 
-  String get displayImageUrl {
-    final normalized = imagenUrl.trim();
-    if (normalized.isEmpty) return _fallbackImage;
-    final lower = normalized.toLowerCase();
-    if (lower.startsWith('https://')) return normalized;
-    if (lower.startsWith('http://')) {
-      return 'https://${normalized.substring('http://'.length)}';
-    }
-    return _fallbackImage;
-  }
+  String? get displayMenuUrl => QuetameCdnUrls.resolveMenu(menuUrl);
 
   static FirestoreMapSite? fromMap(String docId, Map<String, dynamic> data) {
     final nombre = (data['nombre'] ?? '').toString().trim();
@@ -59,9 +51,11 @@ class FirestoreMapSite {
         (data['telefono'] ?? data['phone'] ?? '').toString().trim();
     final menuUrl = (data['menu_url'] ?? '').toString().trim();
     final categoriaRaw = (data['categoria'] ?? '').toString();
-    final imagenUrl = (data['imagen_url'] ?? '').toString().trim();
-    final lat = data['latitud'];
-    final lng = data['longitud'];
+    final imagenUrl = (data['imagen_url'] ?? data['imageUrl'] ?? '')
+        .toString()
+        .trim();
+    final lat = data['latitud'] ?? data['latitude'];
+    final lng = data['longitud'] ?? data['longitude'];
 
     if (nombre.isEmpty || lat == null || lng == null) {
       return null;
@@ -106,7 +100,7 @@ class FirestoreMapSite {
       horarios: horarios,
       horaApertura: horaApertura.isEmpty ? null : horaApertura,
       horaCierre: horaCierre.isEmpty ? null : horaCierre,
-      menuUrl: menuUrl.isEmpty ? null : menuUrl,
+      menuUrl: displayMenuUrl,
     );
   }
 }

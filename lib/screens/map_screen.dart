@@ -314,7 +314,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     final signature = docs
         .map(
           (doc) =>
-              '${doc.id}|${doc.data()['nombre'] ?? ''}|${doc.data()['latitud'] ?? ''}|${doc.data()['longitud'] ?? ''}|${doc.data()['categoria'] ?? ''}',
+              '${doc.id}|${doc.data()['nombre'] ?? ''}|${doc.data()['latitud'] ?? ''}|${doc.data()['longitud'] ?? ''}|${doc.data()['categoria'] ?? ''}|${doc.data()['imagen_url'] ?? ''}',
         )
         .join('||');
     if (signature == _firestoreSignature && _cachedEntities.isNotEmpty) {
@@ -375,7 +375,6 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
   void _openPlaceDetails(MapEntity entity) {
     final place = entity.toPlaceModel();
-    if (place == null) return;
     Navigator.push(
       context,
       MaterialPageRoute(

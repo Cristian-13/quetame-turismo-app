@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:quetame_turismo/core/widgets/quetame_network_image.dart';
 import 'package:quetame_turismo/features/map/domain/map_entity.dart';
 import 'package:quetame_turismo/theme/app_colors.dart';
 
@@ -157,27 +158,10 @@ class _EntityListCard extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              ColoredBox(color: theme.colorScheme.surfaceContainerHighest),
-              Image.network(
-                entity.displayImageUrl,
+              QuetameNetworkImage(
+                url: entity.displayImageUrl,
                 fit: BoxFit.cover,
-                gaplessPlayback: true,
-                filterQuality: FilterQuality.low,
-                loadingBuilder: (context, child, progress) {
-                  if (progress == null) return child;
-                  return const Center(
-                    child: SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: AppColors.goldPrimary,
-                      ),
-                    ),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) =>
-                    ColoredBox(color: theme.colorScheme.surfaceContainerHigh),
+                placeholderIcon: Icons.landscape_outlined,
               ),
               const DecoratedBox(
                 decoration: BoxDecoration(
@@ -256,21 +240,10 @@ class _EntityDetailCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  ColoredBox(color: theme.colorScheme.surfaceContainerHighest),
-                  Image.network(
-                    entity.displayImageUrl,
+                  QuetameNetworkImage(
+                    url: entity.displayImageUrl,
                     fit: BoxFit.cover,
-                    filterQuality: FilterQuality.low,
-                    loadingBuilder: (context, child, progress) {
-                      if (progress == null) return child;
-                      return const Center(
-                        child: CircularProgressIndicator(
-                          color: AppColors.goldPrimary,
-                        ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) =>
-                        ColoredBox(color: theme.colorScheme.surfaceContainerHigh),
+                    placeholderIcon: Icons.landscape_outlined,
                   ),
                   const DecoratedBox(
                     decoration: BoxDecoration(

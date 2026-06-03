@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:quetame_turismo/core/widgets/quetame_network_image.dart';
 import 'package:quetame_turismo/models/place_model.dart';
 import 'package:quetame_turismo/theme/app_colors.dart';
 import 'package:quetame_turismo/theme/app_theme.dart';
@@ -280,7 +281,7 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
 }
 
 class _TopGallery extends StatelessWidget {
-  final String imageUrl;
+  final String? imageUrl;
 
   const _TopGallery({required this.imageUrl});
 
@@ -316,17 +317,16 @@ class _TopGallery extends StatelessWidget {
 }
 
 class _GalleryImage extends StatelessWidget {
-  final String url;
+  final String? url;
 
   const _GalleryImage({required this.url});
 
   @override
   Widget build(BuildContext context) {
-    return Image.network(
-      url,
+    return QuetameNetworkImage(
+      url: url,
       fit: BoxFit.cover,
-      errorBuilder: (_, _, _) =>
-          Container(color: AppColors.surfaceVariant),
+      placeholderIcon: Icons.photo_outlined,
     );
   }
 }
@@ -425,11 +425,6 @@ class _MenuTab extends StatelessWidget {
 
   const _MenuTab({required this.menuUrl});
 
-  bool get _isNetworkUrl {
-    final lower = menuUrl.toLowerCase();
-    return lower.startsWith('http://') || lower.startsWith('https://');
-  }
-
   bool get _isAssetPath => menuUrl.startsWith('assets/');
 
   @override
@@ -480,37 +475,19 @@ class _MenuTab extends StatelessWidget {
                 scaleEnabled: true,
                 boundaryMargin: const EdgeInsets.all(24),
                 child: Center(
-                  child: _isNetworkUrl
-                      ? Image.network(
+                  child: _isAssetPath
+                      ? Image.asset(
                           menuUrl,
                           fit: BoxFit.contain,
-                          loadingBuilder: (context, child, progress) {
-                            if (progress == null) return child;
-                            return const Center(
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                              ),
-                            );
-                          },
-                          errorBuilder: (_, _, _) => _MenuErrorState(
-                            message: 'No se pudo cargar la imagen del menú.',
+                          errorBuilder: (_, _, _) => const _MenuErrorState(
+                            message: 'No se encontró el archivo del menú.',
                           ),
                         )
-                      : _isAssetPath
-                          ? Image.asset(
-                              menuUrl,
-                              fit: BoxFit.contain,
-                              errorBuilder: (_, _, _) => _MenuErrorState(
-                                message: 'No se encontró el archivo del menú.',
-                              ),
-                            )
-                          : Image.network(
-                              menuUrl,
-                              fit: BoxFit.contain,
-                              errorBuilder: (_, _, _) => _MenuErrorState(
-                                message: 'Formato de menú no reconocido.',
-                              ),
-                            ),
+                      : QuetameNetworkImage(
+                          url: menuUrl,
+                          fit: BoxFit.contain,
+                          placeholderIcon: Icons.restaurant_menu,
+                        ),
                 ),
               ),
             ),

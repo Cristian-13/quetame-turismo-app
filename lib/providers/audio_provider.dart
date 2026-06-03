@@ -84,11 +84,17 @@ class AudioProvider extends ChangeNotifier {
 
   Future<void> playRouteAudio(
     String routeId,
-    String url, {
+    String? url, {
     String? trackTitle,
   }) async {
+    final raw = url?.trim() ?? '';
+    if (raw.isEmpty) {
+      debugPrint('playRouteAudio: sin URL de audio para la ruta $routeId');
+      return;
+    }
+
     try {
-      final resolvedUrl = AudioSourceResolver.normalizeUrl(url);
+      final resolvedUrl = AudioSourceResolver.normalizeUrl(raw);
 
       if (_activeRouteId == routeId && _loadedUrl == resolvedUrl) {
         if (_totalDuration > Duration.zero &&
@@ -146,7 +152,7 @@ class AudioProvider extends ChangeNotifier {
 
   Future<void> toggleRoutePlayPause(
     String routeId,
-    String url, {
+    String? url, {
     String? trackTitle,
   }) async {
     if (_isPlaying && _activeRouteId == routeId) {

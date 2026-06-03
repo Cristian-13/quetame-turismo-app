@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:quetame_turismo/core/content/quetame_cdn_urls.dart';
 
 class TrailRoute {
   final String id;
@@ -13,22 +14,14 @@ class TrailRoute {
   final Color difficultyColor;
   final Color difficultyTextColor;
   final List<LatLng> pathPoints;
+  final String? audioguidePath;
 
-  /// URL de prueba de audioguía por ruta.
-  /// Soporta IDs actuales y legado para evitar que todas las rutas caigan en el default.
-  /// MP3 con CORS (compatible con audioplayers en Web).
-  String get audioguideUrl {
-    switch (id) {
-      case 'la_torre':
-      case 'r1':
-        return 'https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3';
-      case 'paramo_burras':
-      case 'r2':
-        return 'https://interactive-examples.mdn.mozilla.net/media/cc0-audio/gong-2.mp3';
-      default:
-        return 'https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3';
-    }
-  }
+  /// URL de audioguía en CDN (o `null` si no hay archivo configurado).
+  String? get audioguideUrl =>
+      QuetameCdnUrls.resolveAudio(audioguidePath) ??
+      QuetameCdnUrls.routeAudioguide(id);
+
+  String? get coverImageUrl => QuetameCdnUrls.routeCoverImage(id);
 
   const TrailRoute({
     required this.id,
@@ -42,5 +35,6 @@ class TrailRoute {
     required this.difficultyColor,
     required this.difficultyTextColor,
     required this.pathPoints,
+    this.audioguidePath,
   });
 }

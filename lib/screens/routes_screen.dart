@@ -189,7 +189,7 @@ class RouteCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final imageUrl = _RouteCoverImage.imageUrlFor(route);
+    final imageUrl = route.coverImageUrl;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(24),
@@ -422,31 +422,6 @@ class _ImmersiveNetworkImage extends StatelessWidget {
   }
 }
 
-class _RouteCoverImage {
-  static const String _laTorreUrl =
-      'https://i.postimg.cc/hP7m0zhF/3a6d20af-5c24-40b5-b96f-14b0399a7781-1.jpg';
-  static const String _paramoUrl =
-      'https://i.postimg.cc/7ZGK0Zry/63c11546-418f-4241-a152-910aaab0ff44-1.jpg';
-
-  static String? imageUrlFor(TrailRoute route) {
-    switch (route.id) {
-      case 'la_torre':
-      case 'r1':
-        return _laTorreUrl;
-      case 'paramo_burras':
-      case 'r2':
-        return _paramoUrl;
-    }
-    final title = route.title.toLowerCase();
-    if (title.contains('torre')) return _laTorreUrl;
-    if (title.contains('páramo') ||
-        title.contains('paramo') ||
-        title.contains('burras')) {
-      return _paramoUrl;
-    }
-    return null;
-  }
-}
 
 class _GlassMetricChip extends StatelessWidget {
   const _GlassMetricChip({

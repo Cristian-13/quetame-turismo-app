@@ -14,7 +14,7 @@ class FloatingAudioPlayer extends StatelessWidget {
   });
 
   final String routeId;
-  final String toggleUrl;
+  final String? toggleUrl;
   final String trackTitle;
 
   @override

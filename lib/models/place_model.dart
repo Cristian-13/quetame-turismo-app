@@ -58,7 +58,7 @@ class PlaceModel {
   final String description;
   final PlaceCategory category;
   final String rawCategory;
-  final String imageUrl;
+  final String? imageUrl;
   final double latitude;
   final double longitude;
   final String? phone;
@@ -74,7 +74,7 @@ class PlaceModel {
     required this.description,
     required this.category,
     this.rawCategory = '',
-    required this.imageUrl,
+    this.imageUrl,
     required this.latitude,
     required this.longitude,
     this.phone,

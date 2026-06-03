@@ -6,7 +6,7 @@ import 'package:quetame_turismo/theme/app_colors.dart';
 
 enum MapEntityType { turismo }
 
-/// Entidad unificada del mapa para puntos turísticos y ecológicos.
+/// Entidad unificada del mapa (solo origen Firestore).
 class MapEntity {
   final String id;
   final String nombre;
@@ -15,45 +15,32 @@ class MapEntity {
   final MapEntityType type;
   final double latitud;
   final double longitud;
-  final String imagenUrl;
-  final FirestoreMapSite? _firestoreSource;
+  final String? displayImageUrl;
+  final FirestoreMapSite _firestoreSource;
 
   MapEntity({
     required this.id,
-    String? name,
-    String? nombre,
-    String? description,
-    String? descripcion,
-    String? categoryLabel,
-    String? categoria,
+    required this.nombre,
+    required this.description,
+    required this.categoria,
+    required this.latitud,
+    required this.longitud,
+    required this.displayImageUrl,
+    required FirestoreMapSite firestoreSource,
     this.type = MapEntityType.turismo,
-    double? latitude,
-    double? latitud,
-    double? longitude,
-    double? longitud,
-    String? imageUrl,
-    String? imagenUrl,
-    FirestoreMapSite? firestoreSource,
-  })  : nombre = nombre ?? name ?? '',
-        description = descripcion ?? description ?? '',
-        categoria = categoria ?? categoryLabel ?? 'Naturaleza',
-        latitud = latitud ?? latitude ?? 0,
-        longitud = longitud ?? longitude ?? 0,
-        imagenUrl = imagenUrl ?? imageUrl ?? '',
-        _firestoreSource = firestoreSource;
+  });
 
   String get name => nombre;
   String get categoryLabel => categoria;
   double get latitude => latitud;
   double get longitude => longitud;
-  String get imageUrl => imagenUrl;
 
   LatLng get latLng => LatLng(latitud, longitud);
 
-  String get displayImageUrl => imagenUrl;
+  bool get hasPlaceDetail => type == MapEntityType.turismo;
 
-  bool get hasPlaceDetail =>
-      type == MapEntityType.turismo && _firestoreSource != null;
+  bool get hasImage =>
+      displayImageUrl != null && displayImageUrl!.trim().isNotEmpty;
 
   Color get badgeColor => switch (type) {
         MapEntityType.turismo => AppColors.goldPrimary,
@@ -72,10 +59,10 @@ class MapEntity {
       type: MapEntityType.turismo,
       latitud: site.latitud,
       longitud: site.longitud,
-      imagenUrl: site.displayImageUrl,
+      displayImageUrl: site.displayImageUrl,
       firestoreSource: site,
     );
   }
 
-  PlaceModel? toPlaceModel() => _firestoreSource?.toPlaceModel();
+  PlaceModel toPlaceModel() => _firestoreSource.toPlaceModel();
 }
