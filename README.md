@@ -37,9 +37,9 @@ El proyecto sigue los principios de **Solid** y **Clean Architecture** para gara
 
 - [ ] **Geolocalización en tiempo real:** Navegación guiada hacia sitios de interés.
 - [ ] **Modo Offline:** Acceso a mapas e información sin necesidad de datos móviles.
-- [ ] **Directorio Comercial:** Sección dedicada a la gastronomía local (puntos de arepas, piqueteaderos, etc.).
+- [ ] **Directorio Comercial:** Sección dedicada a la gastronomía y comercios locales (puntos de arepas, piqueteaderos, etc.).
 - [ ] **Soporte Multi-idioma:** Preparado para el turismo internacional.
-- [ ] **Panel de Administración:** Gestión de contenidos desde la nube.
+
 
 ---
 
