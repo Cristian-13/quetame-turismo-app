@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:quetame_turismo/features/map/domain/map_entity.dart';
+import 'package:quetame_turismo/features/map/domain/map_entity_type.dart';
 import 'package:quetame_turismo/theme/app_colors.dart';
 
 /// Marcador circular premium: borde dorado, sombra suave e icono de categoría.
@@ -18,37 +18,44 @@ class PremiumSiteMarker extends StatelessWidget {
   });
 
   static IconData iconForCategory(String label, MapEntityType? type) {
-    switch (label) {
-      case 'Historia':
+    final key = label.trim().toLowerCase();
+    switch (key) {
+      case 'historia':
         return Icons.account_balance;
-      case 'Cultura':
+      case 'cultura':
         return Icons.museum_rounded;
-      case 'Servicios':
+      case 'servicios':
         return Icons.local_hospital_rounded;
-      case 'Mirador':
+      case 'mirador':
         return Icons.visibility;
-      case 'Gastronomía':
+      case 'gastronomía':
+      case 'gastronomia':
         return Icons.restaurant;
-      case 'Naturaleza':
+      case 'naturaleza':
         return Icons.terrain;
+      case 'sitios':
+        return Icons.tour_rounded;
       default:
         return Icons.place_rounded;
     }
   }
 
   static Color accentForCategory(String label) {
-    switch (label) {
-      case 'Historia':
+    final key = label.trim().toLowerCase();
+    switch (key) {
+      case 'historia':
         return AppColors.categoryHistoria;
-      case 'Cultura':
+      case 'cultura':
         return AppColors.goldMuted;
-      case 'Servicios':
+      case 'servicios':
         return const Color(0xFF0EA5A8);
-      case 'Mirador':
+      case 'mirador':
         return AppColors.categoryMirador;
-      case 'Gastronomía':
+      case 'gastronomía':
+      case 'gastronomia':
         return AppColors.categoryGastronomia;
-      case 'Naturaleza':
+      case 'naturaleza':
+      case 'sitios':
       default:
         return AppColors.categoryNaturaleza;
     }

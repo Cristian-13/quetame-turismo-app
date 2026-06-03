@@ -122,8 +122,9 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
     final isDark = theme.brightness == Brightness.dark;
-    final showMenu = place.rawCategory.trim().toLowerCase() == 'restaurante';
-    final menuUrl = (place.menuUrl ?? '').trim();
+    final showMenu = place.isRestaurante;
+    final menuUrl = (place.imagenMenuUrl ?? '').trim();
+    final imagenPresentacion = place.imagenPresentacionUrl;
     final historia = (place.historia ?? '').trim().isEmpty
         ? 'Historia no disponible'
         : place.historia!.trim();
@@ -140,7 +141,7 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
         child: SingleChildScrollView(
           child: Stack(
             children: [
-              _TopGallery(imageUrl: place.imageUrl),
+              _TopGallery(imageUrl: imagenPresentacion),
               SafeArea(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(

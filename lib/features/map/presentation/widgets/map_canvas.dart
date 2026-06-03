@@ -76,7 +76,7 @@ class _MapCanvasState extends State<MapCanvas> {
         height: 48,
         point: entity.latLng,
         child: PremiumSiteMarker(
-          categoryLabel: entity.categoryLabel,
+          categoryLabel: entity.categoria,
           entityType: entity.type,
           isSelected: selectedId == entity.id,
           onTap: () => widget.onEntityTap(entity),

@@ -14,14 +14,13 @@ class TrailRoute {
   final Color difficultyColor;
   final Color difficultyTextColor;
   final List<LatLng> pathPoints;
-  final String? audioguidePath;
+  final String? audioUrlRaw;
+  final String? imagenUrlRaw;
 
-  /// URL de audioguía en CDN (o `null` si no hay archivo configurado).
-  String? get audioguideUrl =>
-      QuetameCdnUrls.resolveAudio(audioguidePath) ??
-      QuetameCdnUrls.routeAudioguide(id);
+  /// Audioguía resuelta desde `audio_url` de Firestore (sin fallback cruzado).
+  String? get audioguideUrl => QuetameCdnUrls.resolveAudio(audioUrlRaw);
 
-  String? get coverImageUrl => QuetameCdnUrls.routeCoverImage(id);
+  String? get coverImageUrl => QuetameCdnUrls.resolveImage(imagenUrlRaw);
 
   const TrailRoute({
     required this.id,
@@ -35,6 +34,7 @@ class TrailRoute {
     required this.difficultyColor,
     required this.difficultyTextColor,
     required this.pathPoints,
-    this.audioguidePath,
+    this.audioUrlRaw,
+    this.imagenUrlRaw,
   });
 }

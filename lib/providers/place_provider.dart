@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:quetame_turismo/core/content/quetame_cdn_urls.dart';
+import 'package:quetame_turismo/features/map/domain/map_entity_categories.dart';
+import 'package:quetame_turismo/features/map/domain/map_entity_type.dart';
 import 'package:quetame_turismo/models/place_model.dart';
 
 class PlaceProvider extends ChangeNotifier {
@@ -46,29 +48,37 @@ class PlaceProvider extends ChangeNotifier {
 }
 
 PlaceModel _placeFromFirestore(String docId, Map<String, dynamic> data) {
-  final categoryRaw = (data['category'] ?? '').toString().trim().toLowerCase();
-  final category = switch (categoryRaw) {
-    'historia' => PlaceCategory.historia,
-    'naturaleza' => PlaceCategory.naturaleza,
-    'mirador' => PlaceCategory.mirador,
-    'gastronomia' => PlaceCategory.gastronomia,
-    'gastronomía' => PlaceCategory.gastronomia,
-    'restaurante' => PlaceCategory.gastronomia,
-    'comida' => PlaceCategory.gastronomia,
+  final categoryRaw = (data['categoria'] ?? data['category'] ?? '')
+      .toString()
+      .trim()
+      .toLowerCase();
+  final categoria = MapEntityCategories.normalize(categoryRaw);
+  final category = switch (categoria) {
+    MapEntityCategories.historia => PlaceCategory.historia,
+    MapEntityCategories.gastronomia => PlaceCategory.gastronomia,
+    MapEntityCategories.naturaleza => PlaceCategory.naturaleza,
     _ => PlaceCategory.naturaleza,
   };
 
   final lat = data['latitude'] ?? data['latitud'];
   final lng = data['longitude'] ?? data['longitud'];
-  final rawImage = (data['imageUrl'] ?? data['imagen_url'] ?? '').toString();
-  final rawMenu = (data['menu_url'] ?? data['menuUrl'] ?? '').toString();
+  final rawImage = (data['imagen_presentacion_url'] ??
+          data['imagen_url'] ??
+          data['imageUrl'] ??
+          '')
+      .toString();
+  final rawMenu =
+      (data['imagen_menu_url'] ?? data['menu_url'] ?? data['menuUrl'] ?? '')
+          .toString();
+  final tipo = (data['tipo'] ?? 'sitio').toString();
 
   return PlaceModel(
     id: (data['id'] ?? docId).toString(),
     name: (data['name'] ?? data['nombre'] ?? '').toString(),
     description: (data['description'] ?? data['descripcion'] ?? '').toString(),
     category: category,
-    rawCategory: categoryRaw,
+    rawCategory: categoria,
+    entityType: parseEntityType(tipo),
     imageUrl: QuetameCdnUrls.resolveImage(rawImage),
     latitude: (lat is num) ? lat.toDouble() : double.parse(lat.toString()),
     longitude: (lng is num) ? lng.toDouble() : double.parse(lng.toString()),

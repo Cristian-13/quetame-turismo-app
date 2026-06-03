@@ -1,11 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:quetame_turismo/features/map/domain/map_entity.dart';
+import 'package:quetame_turismo/features/map/domain/map_entity_categories.dart';
 import 'package:quetame_turismo/features/map/presentation/widgets/map_category_filter_bar.dart';
 
 /// Estado único del mapa: filtra [allEntities] (turismo + comercio).
 class MapViewModel extends ChangeNotifier {
   List<MapEntity> _allEntities = const [];
-  String _selectedFilterId = 'Todos';
+  String _selectedFilterId = MapEntityCategories.todos;
   String _searchQuery = '';
   bool _searchFocused = false;
   String? _selectedEntityId;

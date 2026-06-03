@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:quetame_turismo/features/map/domain/firestore_map_site.dart';
+import 'package:quetame_turismo/features/map/domain/map_entity_categories.dart';
+import 'package:quetame_turismo/features/map/domain/map_entity_type.dart';
 import 'package:quetame_turismo/models/place_model.dart';
 import 'package:quetame_turismo/theme/app_colors.dart';
-
-enum MapEntityType { turismo }
 
 /// Entidad unificada del mapa (solo origen Firestore).
 class MapEntity {
@@ -15,7 +15,10 @@ class MapEntity {
   final MapEntityType type;
   final double latitud;
   final double longitud;
-  final String? displayImageUrl;
+  final String? imagenPresentacionUrl;
+  final String? imagenMenuUrl;
+  final String historia;
+  final String horarios;
   final FirestoreMapSite _firestoreSource;
 
   MapEntity({
@@ -23,38 +26,60 @@ class MapEntity {
     required this.nombre,
     required this.descripcion,
     required this.categoria,
+    required this.type,
     required this.latitud,
     required this.longitud,
-    required this.displayImageUrl,
+    required this.imagenPresentacionUrl,
+    required this.imagenMenuUrl,
+    required this.historia,
+    required this.horarios,
     required FirestoreMapSite firestoreSource,
-    this.type = MapEntityType.turismo,
   }) : _firestoreSource = firestoreSource;
 
   String get name => nombre;
-
-  /// Alias en inglés usado por widgets existentes.
   String get description => descripcion;
-
-  String get categoryLabel => categoria;
+  String get categoryLabel => MapEntityCategories.displayLabel(categoria);
   double get latitude => latitud;
   double get longitude => longitud;
 
-  /// Alias semántico de [displayImageUrl].
-  String? get imagenPresentacionUrl => displayImageUrl;
+  /// Alias de compatibilidad con widgets anteriores.
+  String? get displayImageUrl => imagenPresentacionUrl;
 
   LatLng get latLng => LatLng(latitud, longitud);
 
-  bool get hasPlaceDetail => type == MapEntityType.turismo;
+  bool get hasPlaceDetail => true;
+
+  bool get isRestaurante => type == MapEntityType.restaurante;
 
   bool get hasImage =>
-      displayImageUrl != null && displayImageUrl!.trim().isNotEmpty;
+      imagenPresentacionUrl != null &&
+      imagenPresentacionUrl!.trim().isNotEmpty;
+
+  bool get hasMenu =>
+      isRestaurante &&
+      imagenMenuUrl != null &&
+      imagenMenuUrl!.trim().isNotEmpty;
 
   Color get badgeColor => switch (type) {
-        MapEntityType.turismo => AppColors.goldPrimary,
+        MapEntityType.restaurante || MapEntityType.gastronomia =>
+          AppColors.categoryGastronomia,
+        MapEntityType.sendero || MapEntityType.naturaleza =>
+          AppColors.categoryNaturaleza,
+        MapEntityType.historia => AppColors.categoryHistoria,
+        MapEntityType.cultura => AppColors.goldMuted,
+        MapEntityType.servicios => const Color(0xFF0EA5A8),
+        MapEntityType.sitio => AppColors.goldPrimary,
       };
 
   String get typeBadgeLabel => switch (type) {
-        MapEntityType.turismo => 'Turismo',
+        MapEntityType.restaurante => 'Restaurante',
+        MapEntityType.sendero => 'Sendero',
+        MapEntityType.sitio => 'Sitio',
+        MapEntityType.cultura => 'Cultura',
+        MapEntityType.historia => 'Historia',
+        MapEntityType.servicios => 'Servicios',
+        MapEntityType.naturaleza => 'Naturaleza',
+        MapEntityType.gastronomia => 'Gastronomía',
       };
 
   factory MapEntity.fromFirestore(FirestoreMapSite site) {
@@ -62,11 +87,14 @@ class MapEntity {
       id: site.id,
       nombre: site.nombre,
       descripcion: site.descripcion,
-      categoria: site.category,
-      type: MapEntityType.turismo,
+      categoria: site.categoria,
+      type: parseEntityType(site.tipo),
       latitud: site.latitud,
       longitud: site.longitud,
-      displayImageUrl: site.displayImageUrl,
+      imagenPresentacionUrl: site.imagenPresentacionUrl,
+      imagenMenuUrl: site.imagenMenuUrl,
+      historia: site.historia,
+      horarios: site.horarios,
       firestoreSource: site,
     );
   }

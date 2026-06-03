@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:latlong2/latlong.dart';
@@ -156,7 +157,8 @@ class RouteProvider extends ChangeNotifier {
         ..clear()
         ..addAll(byId);
 
-      _rebuildRoutesFromGeoJson();
+      final firestoreMeta = await _loadRouteMetadataFromFirestore();
+      _rebuildRoutesFromGeoJson(firestoreMeta);
     } catch (e) {
       _geoRoutesError = e.toString();
       _geoRoutes.clear();
@@ -170,42 +172,98 @@ class RouteProvider extends ChangeNotifier {
     }
   }
 
-  void _rebuildRoutesFromGeoJson() {
+  Future<Map<String, Map<String, dynamic>>> _loadRouteMetadataFromFirestore() async {
+    try {
+      final snapshot =
+          await FirebaseFirestore.instance.collection('rutas').get();
+      return {
+        for (final doc in snapshot.docs) doc.id: doc.data(),
+      };
+    } catch (e) {
+      debugPrint('No se pudo cargar rutas desde Firestore: $e');
+      return const {};
+    }
+  }
+
+  void _rebuildRoutesFromGeoJson([
+    Map<String, Map<String, dynamic>> firestoreMeta = const {},
+  ]) {
     final laTorrePoints = _geoRouteById['la_torre'] ?? const <LatLng>[];
     final paramoPoints = _geoRouteById['paramo_burras'] ?? const <LatLng>[];
 
     _routes
       ..clear()
       ..addAll([
-        TrailRoute(
+        _buildTrailRoute(
           id: 'la_torre',
-          title: 'La Torre',
-          description:
+          defaultTitle: 'La Torre',
+          defaultDescription:
               'Ruta de senderismo hacia La Torre. Descripción temporal; pendiente de contenido oficial municipal.',
-          distance: '—',
-          duration: '1 hora aprox.',
-          stops: '—',
+          defaultDuration: '1 hora aprox.',
           downloaded: true,
           difficulty: 'Moderada',
           difficultyColor: AppColors.difficultyModerateBg,
           difficultyTextColor: AppColors.difficultyModerateFg,
           pathPoints: laTorrePoints,
+          data: firestoreMeta['la_torre'],
         ),
-        TrailRoute(
+        _buildTrailRoute(
           id: 'paramo_burras',
-          title: 'Páramo de las Burras',
-          description:
+          defaultTitle: 'Páramo de las Burras',
+          defaultDescription:
               'Ruta de alta montaña hacia el Páramo de las Burras. Descripción temporal; pendiente de contenido oficial municipal.',
-          distance: '—',
-          duration: '2 horas (en vehículo)',
-          stops: '—',
+          defaultDuration: '2 horas (en vehículo)',
           downloaded: false,
           difficulty: 'Difícil',
           difficultyColor: AppColors.difficultyHardBg,
           difficultyTextColor: AppColors.difficultyHardFg,
           pathPoints: paramoPoints,
+          data: firestoreMeta['paramo_burras'],
         ),
       ]);
+  }
+
+  TrailRoute _buildTrailRoute({
+    required String id,
+    required String defaultTitle,
+    required String defaultDescription,
+    required String defaultDuration,
+    required bool downloaded,
+    required String difficulty,
+    required Color difficultyColor,
+    required Color difficultyTextColor,
+    required List<LatLng> pathPoints,
+    Map<String, dynamic>? data,
+  }) {
+    final audioRaw = (data?['audio_url'] ?? data?['audioUrl'] ?? '')
+        .toString()
+        .trim();
+    final imagenRaw = (data?['imagen_url'] ??
+            data?['imagen_presentacion_url'] ??
+            data?['imagenUrl'] ??
+            '')
+        .toString()
+        .trim();
+
+    return TrailRoute(
+      id: id,
+      title: (data?['titulo'] ?? data?['nombre'] ?? defaultTitle).toString(),
+      description:
+          (data?['descripcion'] ?? data?['description'] ?? defaultDescription)
+              .toString(),
+      distance: (data?['distancia'] ?? data?['distance'] ?? '—').toString(),
+      duration: (data?['duracion'] ?? data?['duration'] ?? defaultDuration)
+          .toString(),
+      stops: (data?['paradas'] ?? data?['stops'] ?? '—').toString(),
+      downloaded: downloaded,
+      difficulty:
+          (data?['dificultad'] ?? data?['difficulty'] ?? difficulty).toString(),
+      difficultyColor: difficultyColor,
+      difficultyTextColor: difficultyTextColor,
+      pathPoints: pathPoints,
+      audioUrlRaw: audioRaw.isEmpty ? null : audioRaw,
+      imagenUrlRaw: imagenRaw.isEmpty ? null : imagenRaw,
+    );
   }
 
   List<TrailRoute> _fallbackRoutes() => const [

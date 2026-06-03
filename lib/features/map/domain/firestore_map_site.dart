@@ -1,4 +1,6 @@
 import 'package:quetame_turismo/core/content/quetame_cdn_urls.dart';
+import 'package:quetame_turismo/features/map/domain/map_entity_type.dart';
+import 'package:quetame_turismo/features/map/domain/map_entity_categories.dart';
 import 'package:quetame_turismo/models/place_model.dart';
 
 /// Sitio turístico leído desde Firestore (`sitios`).
@@ -11,10 +13,10 @@ class FirestoreMapSite {
   final String horaApertura;
   final String horaCierre;
   final String telefono;
-  final String menuUrl;
-  final String categoriaRaw;
-  final String category;
-  final String imagenUrl;
+  final String menuUrlRaw;
+  final String tipo;
+  final String categoria;
+  final String imagenUrlRaw;
   final double latitud;
   final double longitud;
 
@@ -27,18 +29,18 @@ class FirestoreMapSite {
     required this.horaApertura,
     required this.horaCierre,
     required this.telefono,
-    required this.menuUrl,
-    required this.categoriaRaw,
-    required this.category,
-    required this.imagenUrl,
+    required this.menuUrlRaw,
+    required this.tipo,
+    required this.categoria,
+    required this.imagenUrlRaw,
     required this.latitud,
     required this.longitud,
   });
 
-  /// URL lista para [Image.network] o `null` si no hay imagen en Firebase/CDN.
-  String? get displayImageUrl => QuetameCdnUrls.resolveImage(imagenUrl);
+  String? get imagenPresentacionUrl =>
+      QuetameCdnUrls.resolveImage(imagenUrlRaw);
 
-  String? get displayMenuUrl => QuetameCdnUrls.resolveMenu(menuUrl);
+  String? get imagenMenuUrl => QuetameCdnUrls.resolveMenu(menuUrlRaw);
 
   static FirestoreMapSite? fromMap(String docId, Map<String, dynamic> data) {
     final nombre = (data['nombre'] ?? '').toString().trim();
@@ -49,9 +51,18 @@ class FirestoreMapSite {
     final horaCierre = (data['hora_cierre'] ?? '').toString().trim();
     final telefono =
         (data['telefono'] ?? data['phone'] ?? '').toString().trim();
-    final menuUrl = (data['menu_url'] ?? '').toString().trim();
+    final menuUrlRaw = (data['imagen_menu_url'] ??
+            data['menu_url'] ??
+            data['menuUrl'] ??
+            '')
+        .toString()
+        .trim();
+    final tipo = (data['tipo'] ?? 'sitio').toString().trim();
     final categoriaRaw = (data['categoria'] ?? '').toString();
-    final imagenUrl = (data['imagen_url'] ?? data['imageUrl'] ?? '')
+    final imagenUrlRaw = (data['imagen_presentacion_url'] ??
+            data['imagen_url'] ??
+            data['imageUrl'] ??
+            '')
         .toString()
         .trim();
     final lat = data['latitud'] ?? data['latitude'];
@@ -76,10 +87,10 @@ class FirestoreMapSite {
       horaApertura: horaApertura,
       horaCierre: horaCierre,
       telefono: telefono,
-      menuUrl: menuUrl,
-      categoriaRaw: categoriaRaw,
-      category: normalizeCategory(categoriaRaw),
-      imagenUrl: imagenUrl,
+      menuUrlRaw: menuUrlRaw,
+      tipo: tipo,
+      categoria: MapEntityCategories.normalize(categoriaRaw),
+      imagenUrlRaw: imagenUrlRaw,
       latitud: latitud,
       longitud: longitud,
     );
@@ -90,9 +101,10 @@ class FirestoreMapSite {
       id: id,
       name: nombre,
       description: descripcion,
-      category: toPlaceCategory(category),
-      rawCategory: categoriaRaw,
-      imageUrl: displayImageUrl,
+      category: toPlaceCategory(categoria),
+      rawCategory: categoria,
+      entityType: parseEntityType(tipo),
+      imageUrl: imagenPresentacionUrl,
       latitude: latitud,
       longitude: longitud,
       phone: telefono.isEmpty ? null : telefono,
@@ -100,39 +112,22 @@ class FirestoreMapSite {
       horarios: horarios,
       horaApertura: horaApertura.isEmpty ? null : horaApertura,
       horaCierre: horaCierre.isEmpty ? null : horaCierre,
-      menuUrl: displayMenuUrl,
+      menuUrl: imagenMenuUrl,
     );
   }
 }
 
-String normalizeCategory(String raw) {
-  final value = raw.trim().toLowerCase();
-  switch (value) {
-    case 'historia':
-      return 'Historia';
-    case 'naturaleza':
-      return 'Naturaleza';
-    case 'mirador':
-      return 'Mirador';
-    case 'gastronomia':
-    case 'gastronomía':
-    case 'restaurante':
-    case 'comida':
-      return 'Gastronomía';
-    default:
-      return 'Naturaleza';
-  }
-}
-
-PlaceCategory toPlaceCategory(String category) {
-  switch (category) {
-    case 'Historia':
+PlaceCategory toPlaceCategory(String categoria) {
+  switch (MapEntityCategories.normalize(categoria)) {
+    case MapEntityCategories.historia:
       return PlaceCategory.historia;
-    case 'Mirador':
-      return PlaceCategory.mirador;
-    case 'Gastronomía':
+    case MapEntityCategories.gastronomia:
       return PlaceCategory.gastronomia;
-    case 'Naturaleza':
+    case MapEntityCategories.naturaleza:
+      return PlaceCategory.naturaleza;
+    case MapEntityCategories.cultura:
+    case MapEntityCategories.servicios:
+    case MapEntityCategories.sitios:
     default:
       return PlaceCategory.naturaleza;
   }

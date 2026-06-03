@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:quetame_turismo/features/map/domain/map_entity.dart';
+import 'package:quetame_turismo/features/map/domain/map_entity_categories.dart';
 import 'package:quetame_turismo/features/map/presentation/widgets/floating_category_button.dart';
 
 /// Filtro de categoría del mapa (id interno + etiqueta visible).
@@ -28,64 +29,47 @@ class MapCategoryFilterBar extends StatelessWidget {
 
   static const List<MapCategoryFilter> filters = [
     MapCategoryFilter(
-      id: 'Todos',
+      id: MapEntityCategories.todos,
       label: 'Todos',
       icon: Icons.explore_rounded,
     ),
     MapCategoryFilter(
-      id: 'Cultura',
+      id: MapEntityCategories.cultura,
       label: 'Cultura',
       icon: Icons.museum_rounded,
     ),
     MapCategoryFilter(
-      id: 'Historia',
+      id: MapEntityCategories.historia,
       label: 'Historia',
       icon: Icons.account_balance,
     ),
     MapCategoryFilter(
-      id: 'Servicios',
+      id: MapEntityCategories.servicios,
       label: 'Servicios',
       icon: Icons.local_hospital_rounded,
     ),
     MapCategoryFilter(
-      id: 'Naturaleza',
+      id: MapEntityCategories.naturaleza,
       label: 'Naturaleza',
       icon: Icons.landscape_rounded,
     ),
     MapCategoryFilter(
-      id: 'Gastronomía',
+      id: MapEntityCategories.gastronomia,
       label: 'Gastronomía',
       icon: Icons.restaurant,
     ),
     MapCategoryFilter(
-      id: 'sitios_turisticos',
+      id: MapEntityCategories.sitios,
       label: 'Sitios',
       icon: Icons.tour_rounded,
     ),
   ];
 
   static bool entityMatchesFilter(MapEntity entity, String filterId) {
-    switch (filterId) {
-      case 'Todos':
-        return true;
-      case 'sitios_turisticos':
-        return entity.type == MapEntityType.turismo;
-      default:
-        return entity.categoryLabel == filterId;
+    if (filterId == MapEntityCategories.todos || filterId == 'Todos') {
+      return true;
     }
-  }
-
-  @Deprecated('Usar entityMatchesFilter')
-  static bool siteMatchesFilter(String siteCategory, String filterId) {
-    switch (filterId) {
-      case 'Todos':
-        return true;
-      case 'sitios_turisticos':
-        return const {'Historia', 'Naturaleza', 'Cultura', 'Servicios', 'Gastronomía'}
-            .contains(siteCategory);
-      default:
-        return siteCategory == filterId;
-    }
+    return entity.categoria == MapEntityCategories.normalize(filterId);
   }
 
   @override

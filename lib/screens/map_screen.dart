@@ -10,6 +10,7 @@ import 'package:quetame_turismo/features/map/data/map_entity_catalog.dart';
 import 'package:quetame_turismo/features/map/data/osrm_route_service.dart';
 import 'package:quetame_turismo/features/map/domain/firestore_map_site.dart';
 import 'package:quetame_turismo/features/map/domain/map_entity.dart';
+import 'package:quetame_turismo/features/map/domain/map_entity_categories.dart';
 import 'package:quetame_turismo/features/map/presentation/map_camera_animator.dart';
 import 'package:quetame_turismo/features/map/presentation/map_navigation_controller.dart';
 import 'package:quetame_turismo/features/map/presentation/map_view_model.dart';
@@ -136,8 +137,12 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   }
 
   String _resolveInitialFilter(String? category) {
-    if (category == null || category == 'Todos') return 'Todos';
-    return category;
+    if (category == null ||
+        category == 'Todos' ||
+        category == MapEntityCategories.todos) {
+      return MapEntityCategories.todos;
+    }
+    return MapEntityCategories.normalize(category);
   }
 
   void _onSearchChanged(String value) {

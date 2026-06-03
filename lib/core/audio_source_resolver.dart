@@ -14,9 +14,6 @@ class AudioSourceResolver {
     if (cdn != null) return cdn;
 
     if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-      if (kIsWeb && trimmed.toLowerCase().contains('soundhelix.com')) {
-        return QuetameCdnUrls.routeAudioguide('la_torre') ?? trimmed;
-      }
       return trimmed.startsWith('http://')
           ? 'https://${trimmed.substring('http://'.length)}'
           : trimmed;

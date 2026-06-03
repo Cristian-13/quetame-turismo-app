@@ -159,7 +159,7 @@ class _EntityListCard extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               QuetameNetworkImage(
-                url: entity.displayImageUrl,
+                url: entity.imagenPresentacionUrl,
                 fit: BoxFit.cover,
                 placeholderIcon: Icons.landscape_outlined,
               ),
@@ -241,7 +241,7 @@ class _EntityDetailCard extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   QuetameNetworkImage(
-                    url: entity.displayImageUrl,
+                    url: entity.imagenPresentacionUrl,
                     fit: BoxFit.cover,
                     placeholderIcon: Icons.landscape_outlined,
                   ),

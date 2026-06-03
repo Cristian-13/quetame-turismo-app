@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:quetame_turismo/features/map/domain/map_entity_type.dart';
+import 'package:quetame_turismo/features/map/domain/map_entity_categories.dart';
 import 'package:quetame_turismo/theme/app_colors.dart';
 
 enum PlaceCategory {
@@ -7,17 +9,19 @@ enum PlaceCategory {
   mirador,
   gastronomia;
 
-  /// Color del pin según etiqueta de categoría (Firestore / leyenda).
   static Color pinColorForLabel(String label) {
-    switch (label) {
-      case 'Historia':
+    final normalized = MapEntityCategories.normalize(label);
+    switch (normalized) {
+      case MapEntityCategories.historia:
         return PlaceCategory.historia.color;
-      case 'Naturaleza':
+      case MapEntityCategories.naturaleza:
         return PlaceCategory.naturaleza.color;
-      case 'Mirador':
-        return PlaceCategory.mirador.color;
-      case 'Gastronomía':
+      case MapEntityCategories.gastronomia:
         return PlaceCategory.gastronomia.color;
+      case MapEntityCategories.cultura:
+        return AppColors.goldMuted;
+      case MapEntityCategories.servicios:
+        return const Color(0xFF0EA5A8);
       default:
         return PlaceCategory.naturaleza.color;
     }
@@ -58,6 +62,7 @@ class PlaceModel {
   final String description;
   final PlaceCategory category;
   final String rawCategory;
+  final MapEntityType entityType;
   final String? imageUrl;
   final double latitude;
   final double longitude;
@@ -73,6 +78,7 @@ class PlaceModel {
     required this.name,
     required this.description,
     required this.category,
+    required this.entityType,
     this.rawCategory = '',
     this.imageUrl,
     required this.latitude,
@@ -84,4 +90,10 @@ class PlaceModel {
     this.horaCierre,
     this.menuUrl,
   });
+
+  String? get imagenPresentacionUrl => imageUrl;
+
+  String? get imagenMenuUrl => menuUrl;
+
+  bool get isRestaurante => entityType == MapEntityType.restaurante;
 }

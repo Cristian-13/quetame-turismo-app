@@ -53,7 +53,7 @@ class PlaceBottomSheet extends StatelessWidget {
               height: 150,
               width: double.infinity,
               child: QuetameNetworkImage(
-                url: place.imageUrl,
+                url: place.imagenPresentacionUrl,
                 fit: BoxFit.cover,
                 placeholderIcon: Icons.place_outlined,
               ),
