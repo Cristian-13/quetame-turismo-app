@@ -10,7 +10,7 @@ enum MapEntityType { turismo }
 class MapEntity {
   final String id;
   final String nombre;
-  final String description;
+  final String descripcion;
   final String categoria;
   final MapEntityType type;
   final double latitud;
@@ -21,19 +21,26 @@ class MapEntity {
   MapEntity({
     required this.id,
     required this.nombre,
-    required this.description,
+    required this.descripcion,
     required this.categoria,
     required this.latitud,
     required this.longitud,
     required this.displayImageUrl,
     required FirestoreMapSite firestoreSource,
     this.type = MapEntityType.turismo,
-  });
+  }) : _firestoreSource = firestoreSource;
 
   String get name => nombre;
+
+  /// Alias en inglés usado por widgets existentes.
+  String get description => descripcion;
+
   String get categoryLabel => categoria;
   double get latitude => latitud;
   double get longitude => longitud;
+
+  /// Alias semántico de [displayImageUrl].
+  String? get imagenPresentacionUrl => displayImageUrl;
 
   LatLng get latLng => LatLng(latitud, longitud);
 
